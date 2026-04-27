@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Insulin Regimen</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 13px;
+      color: #111;
+      background: #fff;
+      padding: 24px;
+    }
+
+    .page {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    /* Print button */
+    .print-btn {
+      display: block;
+      margin: 0 auto 20px auto;
+      padding: 10px 28px;
+      background: #1a5fa8;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .print-btn:hover { background: #154d8a; }
+
+    /* Header */
+    .header {
+      text-align: center;
+      border-bottom: 3px solid #1a5fa8;
+      padding-bottom: 10px;
+      margin-bottom: 18px;
+    }
+    .header h1 {
+      font-size: 20px;
+      color: #1a5fa8;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .header p {
+      font-size: 12px;
+      color: #555;
+      margin-top: 4px;
+    }
+
+    /* Section blocks */
+    .section {
+      margin-bottom: 16px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .section-title {
+      background: #1a5fa8;
+      color: #fff;
+      padding: 7px 14px;
+      font-size: 13px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .section-body {
+      padding: 12px 14px;
+    }
+
+    /* Insulin boxes */
+    .insulin-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .insulin-box {
+      border: 1px solid #b0c8e8;
+      border-radius: 5px;
+      padding: 10px 12px;
+      background: #f4f8ff;
+    }
+    .insulin-box .label {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: #1a5fa8;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    .insulin-box .drug {
+      font-size: 15px;
+      font-weight: bold;
+      color: #111;
+    }
+    .insulin-box .dose {
+      font-size: 13px;
+      margin-top: 3px;
+      color: #333;
+    }
+    .insulin-box .timing {
+      font-size: 11px;
+      color: #666;
+      margin-top: 3px;
+    }
+
+    /* Sliding scale table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 6px;
+    }
+    th {
+      background: #dce9f8;
+      color: #1a5fa8;
+      padding: 7px 10px;
+      text-align: left;
+      font-size: 12px;
+      border: 1px solid #b0c8e8;
+    }
+    td {
+      padding: 7px 10px;
+      border: 1px solid #ccc;
+      font-size: 12px;
+    }
+    tr:nth-child(even) td { background: #f7faff; }
+    tr.highlight td {
+      background: #fff3cd;
+      font-weight: bold;
+    }
+    tr.danger td {
+      background: #fde8e8;
+      font-weight: bold;
+    }
+
+    /* Notes */
+    .notes {
+      background: #fffbe6;
+      border: 1px solid #e6c200;
+      border-radius: 5px;
+      padding: 10px 14px;
+      font-size: 12px;
+      line-height: 1.7;
+    }
+    .notes ul { padding-left: 18px; }
+    .notes li { margin-bottom: 3px; }
+
+    /* Signature line */
+    .sig-row {
+      display: flex;
+      gap: 30px;
+      margin-top: 18px;
+    }
+    .sig-block {
+      flex: 1;
+      border-top: 1px solid #999;
+      padding-top: 5px;
+      font-size: 11px;
+      color: #555;
+    }
+
+    /* Print styles */
+    @media print {
+      .print-btn { display: none; }
+      body { padding: 12px; }
+      .page { max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <button class="print-btn" onclick="window.print()">🖨️ Print This Page</button>
+
+  <div class="header">
+    <h1>Insulin Regimen Instructions</h1>
+    <p>Patient copy — keep this sheet for reference. Contact your provider with any questions.</p>
+  </div>
+
+  <!-- Prescribed Insulin -->
+  <div class="section">
+    <div class="section-title">Prescribed Insulin</div>
+    <div class="section-body">
+      <div class="insulin-grid">
+        <div class="insulin-box">
+          <div class="label">Long-Acting (Basal)</div>
+          <div class="drug">_______________________</div>
+          <div class="dose">💉 <strong>8 units</strong></div>
+          <div class="timing">⏰ Once daily — <strong>at bedtime</strong></div>
+        </div>
+        <div class="insulin-box">
+          <div class="label">Short-Acting (Mealtime)</div>
+          <div class="drug">_______________________</div>
+          <div class="dose">💉 <strong>3 units</strong></div>
+          <div class="timing">⏰ With each meal (breakfast, lunch, dinner)<br>+ <strong>add sliding scale below</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sliding Scale -->
+  <div class="section">
+    <div class="section-title">Sliding Scale — Check Blood Sugar Before Each Meal &amp; At Bedtime</div>
+    <div class="section-body">
+      <p style="margin-bottom:8px; font-size:12px; color:#444;">
+        Add the sliding scale dose to your <strong>3-unit mealtime dose</strong> at meals. At bedtime, give sliding scale dose only (no mealtime dose at bedtime).
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Blood Sugar (mg/dL)</th>
+            <th>Sliding Scale Dose</th>
+            <th>At Meals: Total Dose</th>
+            <th>At Bedtime: Dose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Under 200</td>
+            <td>0 units</td>
+            <td>3 units</td>
+            <td>0 units</td>
+          </tr>
+          <tr>
+            <td>200 – 249</td>
+            <td>1 unit</td>
+            <td>4 units</td>
+            <td>1 unit</td>
+          </tr>
+          <tr>
+            <td>250 – 299</td>
+            <td>2 units</td>
+            <td>5 units</td>
+            <td>2 units</td>
+          </tr>
+          <tr>
+            <td>300 – 349</td>
+            <td>3 units</td>
+            <td>6 units</td>
+            <td>3 units</td>
+          </tr>
+          <tr class="highlight">
+            <td>350 – 399</td>
+            <td>4 units</td>
+            <td>7 units</td>
+            <td>4 units</td>
+          </tr>
+          <tr class="highlight">
+            <td>400 – 449</td>
+            <td>5 units</td>
+            <td>8 units</td>
+            <td>5 units</td>
+          </tr>
+          <tr class="danger">
+            <td>450 or above</td>
+            <td colspan="3">⚠️ <strong>Call your doctor's office.</strong> Do not dose without guidance.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="margin-top:8px; font-size:11px; color:#666;">
+        <em>Scale: 1 unit for every 50 mg/dL above 200. Target blood sugar: 200 mg/dL.</em>
+      </p>
+    </div>
+  </div>
+
+  <!-- Important Notes -->
+  <div class="section">
+    <div class="section-title">Important Reminders</div>
+    <div class="section-body">
+      <div class="notes">
+        <ul>
+          <li><strong>Long-acting insulin</strong> (bedtime shot) is given <em>every night</em> regardless of blood sugar.</li>
+          <li><strong>Short-acting insulin</strong> is given at meals <em>only when eating</em>. If skipping a meal, skip the mealtime dose — but still check your blood sugar and apply the sliding scale if needed.</li>
+          <li><strong>Low blood sugar (under 70 mg/dL):</strong> Do NOT inject insulin. Treat with 4 oz juice or glucose tablets. Recheck in 15 minutes.</li>
+          <li><strong>Sick days:</strong> Check blood sugar every 4 hours. Continue long-acting insulin. Call the office if blood sugar stays above 300 or you cannot eat.</li>
+          <li><strong>Always check</strong> blood sugar before injecting. Never guess.</li>
+          <li>Keep a log of your readings and bring it to every appointment.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Signature -->
+  <div class="sig-row">
+    <div class="sig-block">Patient Name: ________________________________</div>
+    <div class="sig-block">Date: ____________________</div>
+    <div class="sig-block">Provider: ________________________________</div>
+  </div>
+
+</div>
+</body>
+</html>
