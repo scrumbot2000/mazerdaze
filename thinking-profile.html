@@ -266,6 +266,67 @@
 
     a { color: var(--green); text-decoration: none; opacity: 0.6; }
     a:hover { opacity: 1; }
+
+    @media (max-width: 600px) {
+      body { padding: 1.2rem 0.75rem; color: var(--green); }
+
+      .region-desc { color: var(--green); opacity: 0.85; }
+      .region-bio { color: var(--green); opacity: 0.7; }
+      .region-file { color: var(--green); opacity: 0.65; }
+      .insight { color: var(--green); opacity: 0.85; }
+      .quote-block { color: var(--green); opacity: 0.9; }
+      .flow-title { color: var(--green); opacity: 0.7; }
+      .insights-title { color: var(--green); opacity: 0.7; }
+      .subtitle { color: var(--green); opacity: 0.7; }
+      .logo { color: var(--green); opacity: 0.8; }
+
+      .logo { font-size: 0.8rem; letter-spacing: 0.2em; }
+
+      .subtitle { font-size: 0.72rem; letter-spacing: 0.1em; }
+
+      .brain-grid {
+        grid-template-columns: 1fr;
+        gap: 1.4rem;
+      }
+
+      .region { padding: 1.2rem 1rem; }
+
+      .region-tag {
+        font-size: 0.6rem;
+        letter-spacing: 0.15em;
+      }
+
+      .flow { margin-bottom: 2rem; }
+
+      .flow-steps {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.3rem;
+      }
+
+      .flow-step {
+        text-align: center;
+        white-space: normal;
+      }
+
+      .flow-arrow {
+        transform: rotate(90deg);
+        display: block;
+        text-align: center;
+      }
+
+      .quote-block {
+        font-size: 0.85rem;
+        padding: 0.8rem 1rem;
+        margin-bottom: 2rem;
+      }
+
+      .insights { margin-bottom: 2rem; }
+
+      .insight { font-size: 0.8rem; }
+
+      footer { font-size: 0.6rem; letter-spacing: 0.15em; }
+    }
   </style>
 </head>
 <body>
