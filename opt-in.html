@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MazerDaze — SMS Opt-In</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0a0a0a;
+      color: #c8c8c8;
+      font-family: 'Courier New', Courier, monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .container {
+      max-width: 520px;
+      width: 100%;
+    }
+
+    .logo {
+      color: #39ff14;
+      font-size: 1.1rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 0.4rem;
+    }
+
+    h1 {
+      color: #39ff14;
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+      letter-spacing: 0.05em;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #2a2a2a;
+      margin: 1.2rem 0;
+    }
+
+    p {
+      font-size: 0.88rem;
+      line-height: 1.7;
+      color: #999;
+      margin-bottom: 1rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: #39ff14;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 0.4rem;
+    }
+
+    input[type="tel"] {
+      width: 100%;
+      background: #111;
+      border: 1px solid #2a2a2a;
+      color: #e0e0e0;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 1rem;
+      padding: 0.65rem 0.9rem;
+      border-radius: 3px;
+      outline: none;
+      margin-bottom: 1.1rem;
+      transition: border-color 0.2s;
+    }
+
+    input[type="tel"]:focus {
+      border-color: #39ff14;
+    }
+
+    .consent-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      margin-bottom: 1.4rem;
+    }
+
+    input[type="checkbox"] {
+      margin-top: 0.15rem;
+      accent-color: #39ff14;
+      width: 1rem;
+      height: 1rem;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .consent-text {
+      font-size: 0.82rem;
+      color: #888;
+      line-height: 1.6;
+    }
+
+    .consent-text a {
+      color: #39ff14;
+      text-decoration: none;
+    }
+
+    .consent-text a:hover {
+      text-decoration: underline;
+    }
+
+    button {
+      width: 100%;
+      background: #39ff14;
+      color: #0a0a0a;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.9rem;
+      font-weight: bold;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      border: none;
+      padding: 0.75rem;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+    }
+
+    button:hover {
+      background: #2de010;
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .success {
+      display: none;
+      background: #0f1f0f;
+      border: 1px solid #39ff14;
+      border-radius: 3px;
+      padding: 1rem 1.2rem;
+      margin-top: 1.2rem;
+      font-size: 0.88rem;
+      color: #39ff14;
+      line-height: 1.6;
+    }
+
+    .fine-print {
+      margin-top: 1.8rem;
+      font-size: 0.75rem;
+      color: #555;
+      line-height: 1.6;
+    }
+
+    .fine-print a {
+      color: #555;
+      text-decoration: underline;
+    }
+
+    .back {
+      display: inline-block;
+      margin-top: 2rem;
+      font-size: 0.78rem;
+      color: #444;
+      text-decoration: none;
+      letter-spacing: 0.08em;
+    }
+
+    .back:hover { color: #39ff14; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">MazerDaze</div>
+    <h1>SMS Opt-In</h1>
+    <hr class="divider">
+
+    <p>
+      Sign up to receive text messages from MazerDaze — household reminders,
+      schedule alerts, and coordination messages sent to known recipients only.
+    </p>
+
+    <form id="optInForm">
+      <label for="phone">Mobile Phone Number</label>
+      <input
+        type="tel"
+        id="phone"
+        name="phone"
+        placeholder="+1 (555) 000-0000"
+        autocomplete="tel"
+        required
+      >
+
+      <div class="consent-row">
+        <input type="checkbox" id="consent" name="consent" required>
+        <span class="consent-text">
+          I agree to receive recurring automated text messages from MazerDaze
+          at the number provided. Message &amp; data rates may apply.
+          Reply <strong>STOP</strong> to opt out at any time.
+          Reply <strong>HELP</strong> for help.
+          See our <a href="/privacy-policy.html">Privacy Policy</a> and
+          <a href="/terms.html">Terms &amp; Conditions</a>.
+        </span>
+      </div>
+
+      <button type="submit" id="submitBtn">Opt In to SMS Messages</button>
+    </form>
+
+    <div class="success" id="successMsg">
+      ✓ You're opted in. A confirmation message will be sent to your number shortly.
+      Reply STOP at any time to unsubscribe.
+    </div>
+
+    <p class="fine-print">
+      MazerDaze sends messages to a small group of known recipients only.
+      No third-party sharing. No marketing from outside parties.
+      Msg frequency varies. Msg &amp; data rates may apply.<br><br>
+      <a href="/privacy-policy.html">Privacy Policy</a> ·
+      <a href="/terms.html">Terms &amp; Conditions</a>
+    </p>
+
+    <a class="back" href="/">← Back to MazerDaze</a>
+  </div>
+
+  <script>
+    document.getElementById('optInForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      const success = document.getElementById('successMsg');
+      btn.disabled = true;
+      btn.textContent = 'Submitted...';
+      setTimeout(function() {
+        document.getElementById('optInForm').style.display = 'none';
+        success.style.display = 'block';
+      }, 600);
+    });
+  </script>
+</body>
+</html>
