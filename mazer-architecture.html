@@ -1,415 +1,554 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>ScrumBot / OpenClaw — Memory Architecture</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: #0d0d1a;
-    color: #e0e0e0;
-    font-family: 'Courier New', Courier, monospace;
-    padding: 30px;
-    min-height: 100vh;
-  }
-  h1 {
-    text-align: center;
-    color: #00ff88;
-    font-size: 1.4em;
-    letter-spacing: 3px;
-    margin-bottom: 6px;
-    text-shadow: 0 0 10px #00ff8866;
-  }
-  .subtitle {
-    text-align: center;
-    color: #666;
-    font-size: 0.75em;
-    margin-bottom: 30px;
-    letter-spacing: 2px;
-  }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MazerDaze — How Mazer Thinks</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  /* ── GRID ── */
-  .top-grid {
-    display: grid;
-    grid-template-columns: 1fr 1.6fr 1fr;
-    gap: 20px;
-    margin-bottom: 16px;
-    align-items: start;
-  }
+    :root {
+      --green:  #39ff14;
+      --green2: #2de010;
+      --amber:  #ffaa00;
+      --cyan:   #00d4ff;
+      --purple: #c084fc;
+      --dim:    #555;
+      --bg:     #0a0a0a;
+      --bg2:    #111;
+      --bg3:    #161616;
+      --border: #1e1e1e;
+    }
 
-  .col-header {
-    font-size: 0.65em;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    margin-bottom: 8px;
-    padding: 4px 8px;
-    border-radius: 3px;
-  }
+    body {
+      background: var(--bg);
+      color: #c8c8c8;
+      font-family: 'Courier New', Courier, monospace;
+      padding: 2rem 1.5rem 3rem;
+      min-height: 100vh;
+    }
 
-  /* colour themes */
-  .amber  { border: 1px solid #ffaa00; }
-  .amber .col-header  { background: #ffaa0022; color: #ffaa00; border-bottom: 1px solid #ffaa0044; }
-  .green  { border: 1px solid #00ff88; }
-  .green  .col-header { background: #00ff8822; color: #00ff88; border-bottom: 1px solid #00ff8844; }
-  .cyan   { border: 1px solid #00ccff; }
-  .cyan   .col-header { background: #00ccff22; color: #00ccff; border-bottom: 1px solid #00ccff44; }
-  .purple { border: 1px solid #cc88ff; }
-  .purple .col-header { background: #cc88ff22; color: #cc88ff; border-bottom: 1px solid #cc88ff44; }
-  .white  { border: 2px solid #ffffff55; }
-  .white  .col-header { background: #ffffff11; color: #ffffff; border-bottom: 1px solid #ffffff22; }
+    /* ── HEADER ── */
+    .header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+    .header .logo {
+      color: var(--green);
+      font-size: 0.8rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+    .header h1 {
+      color: var(--green);
+      font-size: 1.4rem;
+      letter-spacing: 0.08em;
+      text-shadow: 0 0 18px #39ff1444;
+      margin-bottom: 0.4rem;
+    }
+    .header .sub {
+      color: var(--dim);
+      font-size: 0.72rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
 
-  .panel {
-    border-radius: 6px;
-    overflow: hidden;
-  }
-  .panel-body { padding: 12px 14px; }
+    /* ── SECTION LABELS ── */
+    .section-label {
+      font-size: 0.65rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-bottom: 0.6rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid var(--border);
+    }
 
-  .file-box {
-    background: #1a1a2e;
-    border-radius: 4px;
-    padding: 10px 12px;
-    margin: 8px 0;
-    font-size: 0.8em;
-  }
-  .file-name { font-weight: bold; font-size: 1em; margin-bottom: 3px; }
-  .file-desc { color: #888; font-size: 0.85em; }
-  .badge {
-    display: inline-block;
-    font-size: 0.7em;
-    padding: 1px 6px;
-    border-radius: 10px;
-    margin-top: 4px;
-  }
-  .badge-lock { background: #ff444422; color: #ff8888; border: 1px solid #ff444444; }
-  .badge-all  { background: #00ff8822; color: #00ff88;  border: 1px solid #00ff8844; }
+    /* ── PANELS ── */
+    .panel {
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--bg2);
+      overflow: hidden;
+    }
+    .panel-head {
+      padding: 0.45rem 0.9rem;
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+    }
+    .panel-body { padding: 0.9rem; }
 
-  /* arrows between rows */
-  .arrow-row {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 0;
-    margin: 4px 0;
-    position: relative;
-  }
-  .arrow-down {
-    text-align: center;
-    color: #555;
-    font-size: 1.4em;
-    line-height: 1;
-  }
-  .arrow-label {
-    font-size: 0.6em;
-    color: #555;
-    letter-spacing: 1px;
-    margin-left: 6px;
-  }
+    .panel.green  { border-color: #39ff1433; }
+    .panel.green  .panel-head { color: var(--green);  background: #39ff140d; }
+    .panel.amber  { border-color: #ffaa0033; }
+    .panel.amber  .panel-head { color: var(--amber);  background: #ffaa000d; }
+    .panel.cyan   { border-color: #00d4ff33; }
+    .panel.cyan   .panel-head { color: var(--cyan);   background: #00d4ff0d; }
+    .panel.purple { border-color: #c084fc33; }
+    .panel.purple .panel-head { color: var(--purple); background: #c084fc0d; }
+    .panel.white  { border-color: #ffffff22; }
+    .panel.white  .panel-head { color: #ccc;          background: #ffffff08; }
 
-  /* context window — wide center box */
-  .context-window {
-    border: 2px solid #ffffff44;
-    border-radius: 6px;
-    background: #111124;
-    padding: 16px;
-    margin-bottom: 16px;
-  }
-  .context-window .cw-title {
-    color: #fff;
-    font-size: 1em;
-    font-weight: bold;
-    letter-spacing: 2px;
-    margin-bottom: 4px;
-  }
-  .context-window .cw-sub {
-    color: #666;
-    font-size: 0.7em;
-    margin-bottom: 14px;
-  }
-  .feeds-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    margin-top: 10px;
-  }
-  .feed-chip {
-    background: #1e1e38;
-    border: 1px solid #333;
-    border-radius: 4px;
-    padding: 7px 10px;
-    font-size: 0.72em;
-  }
-  .feed-chip .fc-name { color: #aaa; font-weight: bold; }
-  .feed-chip .fc-desc { color: #555; font-size: 0.85em; margin-top: 2px; }
+    /* ── FILE CHIPS ── */
+    .file-chip {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 0.6rem 0.75rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.78rem;
+    }
+    .file-chip:last-child { margin-bottom: 0; }
+    .file-chip .fname { font-weight: bold; margin-bottom: 0.2rem; }
+    .file-chip .fdesc { color: #777; font-size: 0.82em; line-height: 1.5; }
+    .badge {
+      display: inline-block;
+      font-size: 0.68em;
+      padding: 1px 7px;
+      border-radius: 10px;
+      margin-top: 0.3rem;
+    }
+    .badge-lock { background: #ff444415; color: #ff8888; border: 1px solid #ff444430; }
+    .badge-all  { background: #39ff1415; color: var(--green); border: 1px solid #39ff1430; }
 
-  /* connectors above context window */
-  .connector-row {
-    display: grid;
-    grid-template-columns: 1fr 1.6fr 1fr;
-    gap: 20px;
-    margin-bottom: 4px;
-  }
-  .connector { text-align: center; color: #444; font-size: 1.3em; }
-  .connector.left  { text-align: right; padding-right: 28px; }
-  .connector.right { text-align: left;  padding-left:  28px; }
+    /* ── TOP 3-COL GRID ── */
+    .top-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.5fr 1fr;
+      gap: 1rem;
+      margin-bottom: 0.6rem;
+    }
 
-  /* dreaming section */
-  .dream-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 20px;
-    margin-bottom: 20px;
-  }
-  .sleep-phases {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-  }
-  .sleep-phase {
-    background: #1a0d2e;
-    border: 1px solid #cc88ff44;
-    border-radius: 4px;
-    padding: 10px 14px;
-    font-size: 0.78em;
-    position: relative;
-  }
-  .sleep-phase + .sleep-phase { margin-top: -1px; border-top-color: #cc88ff22; }
-  .sleep-phase .sp-name { color: #cc88ff; font-weight: bold; margin-bottom: 3px; }
-  .sleep-phase .sp-desc { color: #888; font-size: 0.9em; }
-  .phase-arrow { text-align: center; color: #cc88ff55; font-size: 1.1em; padding: 2px 0; }
+    /* ── CONNECTOR ROW ── */
+    .connector-row {
+      display: grid;
+      grid-template-columns: 1fr 1.5fr 1fr;
+      gap: 1rem;
+      margin-bottom: 0.3rem;
+      font-size: 0.7rem;
+      color: var(--dim);
+      text-align: center;
+    }
+    .connector-row .left  { text-align: right; padding-right: 1.5rem; }
+    .connector-row .right { text-align: left;  padding-left:  1.5rem; }
 
-  .promote-arrow {
-    text-align: center;
-    margin: 8px 0;
-    font-size: 0.7em;
-    color: #ffaa00;
-    letter-spacing: 1px;
-  }
+    /* ── CONTEXT WINDOW ── */
+    .context-window {
+      border: 1px solid #ffffff22;
+      border-radius: 4px;
+      background: #0e0e0e;
+      padding: 1.1rem;
+      margin-bottom: 1rem;
+    }
+    .context-window .cw-title {
+      color: #fff;
+      font-size: 0.8rem;
+      font-weight: bold;
+      letter-spacing: 0.12em;
+      margin-bottom: 0.2rem;
+    }
+    .context-window .cw-sub {
+      color: var(--dim);
+      font-size: 0.68rem;
+      margin-bottom: 0.9rem;
+      line-height: 1.6;
+    }
+    .cw-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.5rem;
+    }
+    .cw-chip {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 0.55rem 0.7rem;
+      font-size: 0.7rem;
+    }
+    .cw-chip .cn { font-weight: bold; margin-bottom: 0.15rem; }
+    .cw-chip .cd { color: var(--dim); font-size: 0.85em; }
+    .cw-chip.g { border-color: #39ff1422; }
+    .cw-chip.g .cn { color: var(--green); }
+    .cw-chip.a { border-color: #ffaa0022; }
+    .cw-chip.a .cn { color: var(--amber); }
+    .cw-chip.c { border-color: #00d4ff22; }
+    .cw-chip.c .cn { color: var(--cyan); }
+    .cw-chip.w .cn { color: #bbb; }
 
-  /* bottom search bar */
-  .search-bar {
-    border: 1px solid #00ccff55;
-    border-radius: 6px;
-    background: #0d1a22;
-    padding: 12px 16px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    font-size: 0.78em;
-  }
-  .search-bar .sb-icon { font-size: 1.4em; }
-  .search-bar .sb-title { color: #00ccff; font-weight: bold; font-size: 1em; }
-  .search-bar .sb-desc { color: #666; font-size: 0.85em; }
-  .search-bar .sb-arrow { margin-left: auto; color: #00ccff88; font-size: 0.85em; }
+    /* ── LLM BOX ── */
+    .llm-arrow {
+      text-align: center;
+      font-size: 0.7rem;
+      color: var(--dim);
+      margin: 0.3rem 0;
+      letter-spacing: 0.1em;
+    }
+    .llm-box {
+      border: 1px solid var(--green);
+      border-radius: 4px;
+      background: #0a140a;
+      padding: 1rem 1.2rem;
+      text-align: center;
+      margin-bottom: 1rem;
+      box-shadow: 0 0 20px #39ff1412;
+    }
+    .llm-box .llm-name {
+      color: var(--green);
+      font-size: 1rem;
+      font-weight: bold;
+      letter-spacing: 0.1em;
+      text-shadow: 0 0 10px #39ff1455;
+      margin-bottom: 0.3rem;
+    }
+    .llm-box .llm-sub {
+      color: var(--dim);
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+    }
+    .llm-box .llm-model {
+      color: #888;
+      font-size: 0.68rem;
+      margin-top: 0.4rem;
+    }
 
-  .dreams-panel .file-box { background: #1a0d2e; }
+    /* ── CHANNELS ROW ── */
+    .channels-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 1.2rem;
+    }
+    .ch-chip {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 0.55rem 0.5rem;
+      text-align: center;
+      font-size: 0.68rem;
+    }
+    .ch-chip .ch-icon { font-size: 1.1rem; margin-bottom: 0.2rem; }
+    .ch-chip .ch-name { color: #aaa; font-weight: bold; }
+    .ch-chip .ch-model { color: var(--dim); font-size: 0.85em; margin-top: 0.15rem; }
 
-  @media print {
-    body { background: white; color: black; padding: 15px; }
-    .print-hide { display: none; }
-  }
-</style>
+    /* ── DREAM + MEMORY SECTION ── */
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .sleep-phase {
+      background: #120d1a;
+      border: 1px solid #c084fc22;
+      border-radius: 3px;
+      padding: 0.65rem 0.8rem;
+      margin-bottom: -1px;
+      font-size: 0.75rem;
+    }
+    .sleep-phase:first-child { border-radius: 3px 3px 0 0; }
+    .sleep-phase:last-child  { border-radius: 0 0 3px 3px; margin-bottom: 0; }
+    .sleep-phase .sp-name { color: var(--purple); font-weight: bold; margin-bottom: 0.2rem; }
+    .sleep-phase .sp-desc { color: #777; font-size: 0.88em; line-height: 1.5; }
+    .phase-arrow { text-align: center; color: #c084fc44; font-size: 0.9rem; padding: 0.1rem 0; }
+
+    .promote-bar {
+      text-align: center;
+      margin-top: 0.6rem;
+      font-size: 0.65rem;
+      color: var(--amber);
+      letter-spacing: 0.08em;
+      border: 1px solid #ffaa0022;
+      border-radius: 3px;
+      padding: 0.4rem;
+      background: #ffaa000a;
+    }
+
+    /* ── FILE TREE ── */
+    .file-tree {
+      font-size: 0.7rem;
+      color: var(--dim);
+      line-height: 2;
+    }
+    .file-tree .root { color: var(--green); }
+    .file-tree .g { color: var(--green); }
+    .file-tree .a { color: var(--amber); }
+    .file-tree .c { color: var(--cyan); }
+    .file-tree .p { color: var(--purple); }
+
+    /* ── MEMORY SEARCH BAR ── */
+    .search-bar {
+      border: 1px solid #00d4ff33;
+      border-radius: 4px;
+      background: #0a1014;
+      padding: 0.9rem 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      font-size: 0.75rem;
+      margin-bottom: 2rem;
+    }
+    .search-bar .sb-icon { font-size: 1.3rem; flex-shrink: 0; }
+    .search-bar .sb-title { color: var(--cyan); font-weight: bold; font-size: 0.8rem; margin-bottom: 0.2rem; }
+    .search-bar .sb-desc { color: #666; font-size: 0.85em; line-height: 1.5; }
+    .search-bar .sb-tag { margin-left: auto; color: #00d4ff66; font-size: 0.75rem; white-space: nowrap; flex-shrink: 0; }
+
+    /* ── FOOTER ── */
+    .footer {
+      text-align: center;
+      font-size: 0.6rem;
+      color: #2a2a2a;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+    .footer a { color: #2a2a2a; text-decoration: none; }
+    .footer a:hover { color: var(--green); }
+
+    /* ── DIVIDER ── */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 1.2rem 0;
+    }
+
+    @media (max-width: 700px) {
+      .top-grid { grid-template-columns: 1fr; }
+      .connector-row { display: none; }
+      .cw-grid { grid-template-columns: repeat(2, 1fr); }
+      .channels-grid { grid-template-columns: repeat(3, 1fr); }
+      .bottom-grid { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 <body>
 
-<h1>🤖 SCRUMBOT / OPENCLAW — MEMORY ARCHITECTURE</h1>
-<p class="subtitle">DATA FLOW &amp; FILE INTERACTION MAP</p>
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo">MazerDaze</div>
+    <h1>[O_O] HOW MAZER THINKS</h1>
+    <div class="sub">Memory · Identity · Context · Output — Architecture Map</div>
+  </div>
 
-<!-- ═══════════════════════ TOP ROW: 3 columns ═══════════════════════ -->
-<div class="top-grid">
+  <!-- TOP ROW: Long-term | Identity | Short-term -->
+  <div class="top-grid">
 
-  <!-- LEFT: Long-term memory -->
-  <div class="panel amber">
-    <div class="col-header">📦 Long-Term Memory</div>
-    <div class="panel-body">
-      <div class="file-box">
-        <div class="file-name" style="color:#ffaa00">MEMORY.md</div>
-        <div class="file-desc">Curated, distilled knowledge. Survives across all sessions.</div>
-        <span class="badge badge-lock">🔒 Main session only</span>
+    <!-- Long-term Memory -->
+    <div class="panel amber">
+      <div class="panel-head">📦 Long-Term Memory</div>
+      <div class="panel-body">
+        <div class="file-chip">
+          <div class="fname" style="color:var(--amber)">MEMORY.md</div>
+          <div class="fdesc">Curated, distilled knowledge. Survives all sessions. The permanent record.</div>
+          <span class="badge badge-lock">🔒 Main session only</span>
+        </div>
+        <div class="file-chip">
+          <div class="fname" style="color:var(--amber)">memory/*.md</div>
+          <div class="fdesc">Contact files: jenny.md, janice.md, devin.md, volprion.md — loaded on demand.</div>
+          <span class="badge badge-all">✓ On demand</span>
+        </div>
       </div>
-      <div class="file-box">
-        <div class="file-name" style="color:#ffaa00">memory/*.md</div>
-        <div class="file-desc">Contact files: jenny.md, janice.md, devin.md, volprion.md…</div>
-        <span class="badge badge-all">✓ Loaded on demand</span>
+    </div>
+
+    <!-- Identity & Soul -->
+    <div class="panel green">
+      <div class="panel-head">🧬 Identity &amp; Soul</div>
+      <div class="panel-body">
+        <div class="file-chip">
+          <div class="fname" style="color:var(--green)">SOUL.md</div>
+          <div class="fdesc">Persona, values, voice, how to behave. The "who I am" layer. Governs everything.</div>
+        </div>
+        <div class="file-chip">
+          <div class="fname" style="color:var(--green)">USER.md</div>
+          <div class="fdesc">Todd's preferences, schedule, trusted contacts, and character.</div>
+        </div>
+        <div class="file-chip">
+          <div class="fname" style="color:var(--green)">IDENTITY.md</div>
+          <div class="fdesc">Name (ScrumBot/Mazer), active model, avatar policy, known relationships.</div>
+        </div>
+        <div class="file-chip">
+          <div class="fname" style="color:var(--green)">AGENTS.md</div>
+          <div class="fdesc">Operational rules, lessons learned, red lines, memory protocol.</div>
+        </div>
       </div>
+    </div>
+
+    <!-- Short-term / Daily -->
+    <div class="panel cyan">
+      <div class="panel-head">📅 Short-Term / Daily</div>
+      <div class="panel-body">
+        <div class="file-chip">
+          <div class="fname" style="color:var(--cyan)">memory/YYYY-MM-DD.md</div>
+          <div class="fdesc">Raw daily logs. Today + yesterday loaded at session start.</div>
+          <span class="badge badge-all">✓ All sessions</span>
+        </div>
+        <div class="file-chip">
+          <div class="fname" style="color:var(--cyan)">HEARTBEAT.md</div>
+          <div class="fdesc">Periodic check checklist. Runs every 15 min — email, calendar, news watch.</div>
+        </div>
+        <div class="file-chip">
+          <div class="fname" style="color:var(--cyan)">TOOLS.md</div>
+          <div class="fdesc">Local setup: scripts, credentials locations, device names, APIs.</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /top-grid -->
+
+  <!-- CONNECTOR ARROWS -->
+  <div class="connector-row">
+    <div class="left" style="color:#ffaa0055">──────────────▶</div>
+    <div style="color:#39ff1455">▼</div>
+    <div class="right" style="color:#00d4ff55">◀──────────────</div>
+  </div>
+
+  <!-- CONTEXT WINDOW -->
+  <div class="context-window">
+    <div class="cw-title">⚡ CONTEXT WINDOW — ACTIVE SESSION</div>
+    <div class="cw-sub">Everything injected here is what Mazer can see and reason about right now. Resets each session — files are the only continuity between conversations.</div>
+    <div class="cw-grid">
+      <div class="cw-chip g"><div class="cn">SOUL.md</div><div class="cd">Persona layer</div></div>
+      <div class="cw-chip g"><div class="cn">USER.md + IDENTITY.md</div><div class="cd">Who / what I am</div></div>
+      <div class="cw-chip a"><div class="cn">MEMORY.md</div><div class="cd">Long-term (main only)</div></div>
+      <div class="cw-chip c"><div class="cn">Daily notes</div><div class="cd">Today + yesterday</div></div>
+      <div class="cw-chip w"><div class="cn">AGENTS.md</div><div class="cd">Rules + red lines</div></div>
+      <div class="cw-chip w"><div class="cn">TOOLS.md</div><div class="cd">Local setup</div></div>
+      <div class="cw-chip c"><div class="cn">HEARTBEAT.md</div><div class="cd">Periodic tasks</div></div>
+      <div class="cw-chip c"><div class="cn">memory_search recall</div><div class="cd">On-demand snippets</div></div>
     </div>
   </div>
 
-  <!-- CENTER: Identity & Soul -->
-  <div class="panel green">
-    <div class="col-header">🧬 Identity &amp; Soul</div>
-    <div class="panel-body">
-      <div class="file-box">
-        <div class="file-name" style="color:#00ff88">SOUL.md</div>
-        <div class="file-desc">Persona, values, voice, how to behave. The "who I am" layer.</div>
-      </div>
-      <div class="file-box">
-        <div class="file-name" style="color:#00ff88">USER.md</div>
-        <div class="file-desc">Todd's preferences, schedule, trusted contacts, character.</div>
-      </div>
-      <div class="file-box">
-        <div class="file-name" style="color:#00ff88">IDENTITY.md</div>
-        <div class="file-desc">Name (ScrumBot), active model, avatar, known relationships.</div>
-      </div>
-      <div class="file-box">
-        <div class="file-name" style="color:#00ff88">AGENTS.md</div>
-        <div class="file-desc">Operational rules, lessons learned, red lines, memory protocol.</div>
-      </div>
+  <!-- ARROW DOWN TO LLM -->
+  <div class="llm-arrow">▼ &nbsp; all of the above is injected as context &nbsp; ▼</div>
+
+  <!-- LLM BOX -->
+  <div class="llm-box">
+    <div class="llm-name">◈ LARGE LANGUAGE MODEL ◈</div>
+    <div class="llm-sub">The harness hangs here. Context in → reasoning → response out.</div>
+    <div class="llm-model">Default: anthropic/claude-haiku · Email/heavy: anthropic/claude-sonnet · Reasoning: anthropic/claude-opus</div>
+  </div>
+
+  <!-- ARROW DOWN TO CHANNELS -->
+  <div class="llm-arrow">▼ &nbsp; output routed to active channel &nbsp; ▼</div>
+
+  <!-- CHANNELS -->
+  <div class="channels-grid">
+    <div class="ch-chip">
+      <div class="ch-icon">📱</div>
+      <div class="ch-name">Telegram</div>
+      <div class="ch-model">Sonnet · main voice</div>
+    </div>
+    <div class="ch-chip">
+      <div class="ch-icon">📧</div>
+      <div class="ch-name">Gmail</div>
+      <div class="ch-model">Sonnet · quality replies</div>
+    </div>
+    <div class="ch-chip">
+      <div class="ch-icon">💬</div>
+      <div class="ch-name">Discord</div>
+      <div class="ch-model">Haiku · peer/casual</div>
+    </div>
+    <div class="ch-chip">
+      <div class="ch-icon">⏰</div>
+      <div class="ch-name">Cron Jobs</div>
+      <div class="ch-model">Haiku · isolated sessions</div>
+    </div>
+    <div class="ch-chip">
+      <div class="ch-icon">💤</div>
+      <div class="ch-name">Dreaming</div>
+      <div class="ch-model">Haiku · background</div>
     </div>
   </div>
 
-  <!-- RIGHT: Short-term daily -->
-  <div class="panel cyan">
-    <div class="col-header">📅 Short-Term / Daily</div>
-    <div class="panel-body">
-      <div class="file-box">
-        <div class="file-name" style="color:#00ccff">memory/YYYY-MM-DD.md</div>
-        <div class="file-desc">Raw daily logs. Today + yesterday loaded at session start.</div>
-        <span class="badge badge-all">✓ All sessions</span>
-      </div>
-      <div class="file-box">
-        <div class="file-name" style="color:#00ccff">HEARTBEAT.md</div>
-        <div class="file-desc">Periodic check checklist. Runs every 15 min on schedule.</div>
-      </div>
-      <div class="file-box">
-        <div class="file-name" style="color:#00ccff">TOOLS.md</div>
-        <div class="file-desc">Local setup: scripts, credentials locations, device names.</div>
-      </div>
-    </div>
-  </div>
+  <hr class="divider">
+  <div class="section-label" style="color:var(--purple)">💤 Background Consolidation — The Dreaming System</div>
 
-</div><!-- /top-grid -->
+  <!-- DREAMING + FILE TREE -->
+  <div class="bottom-grid">
 
-<!-- ═══════════════════ CONNECTOR ARROWS ═══════════════════ -->
-<div class="connector-row">
-  <div class="connector left" style="color:#ffaa0066">──────────────▶</div>
-  <div class="connector" style="color:#00ff8866">▼</div>
-  <div class="connector right" style="color:#00ccff66">◀──────────────</div>
-</div>
-
-<!-- ═══════════════════ CONTEXT WINDOW ═══════════════════ -->
-<div class="context-window">
-  <div class="cw-title">⚡ CONTEXT WINDOW — ACTIVE SESSION</div>
-  <div class="cw-sub">Everything injected here is what I can see and reason about right now. Resets each session — files are the only continuity.</div>
-
-  <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:8px; font-size:0.72em;">
-    <div style="background:#1e1e38;border:1px solid #00ff8833;border-radius:4px;padding:8px;">
-      <div style="color:#00ff88;font-weight:bold;">SOUL.md</div>
-      <div style="color:#555;font-size:0.85em;">Persona layer</div>
-    </div>
-    <div style="background:#1e1e38;border:1px solid #00ff8833;border-radius:4px;padding:8px;">
-      <div style="color:#00ff88;font-weight:bold;">USER.md + IDENTITY.md</div>
-      <div style="color:#555;font-size:0.85em;">Who / what I am</div>
-    </div>
-    <div style="background:#1e1e38;border:1px solid #ffaa0033;border-radius:4px;padding:8px;">
-      <div style="color:#ffaa00;font-weight:bold;">MEMORY.md</div>
-      <div style="color:#555;font-size:0.85em;">Long-term (main only)</div>
-    </div>
-    <div style="background:#1e1e38;border:1px solid #00ccff33;border-radius:4px;padding:8px;">
-      <div style="color:#00ccff;font-weight:bold;">Daily notes</div>
-      <div style="color:#555;font-size:0.85em;">Today + yesterday</div>
-    </div>
-    <div style="background:#1e1e38;border:1px solid #ffffff22;border-radius:4px;padding:8px;">
-      <div style="color:#aaa;font-weight:bold;">AGENTS.md</div>
-      <div style="color:#555;font-size:0.85em;">Rules + red lines</div>
-    </div>
-    <div style="background:#1e1e38;border:1px solid #ffffff22;border-radius:4px;padding:8px;">
-      <div style="color:#aaa;font-weight:bold;">TOOLS.md</div>
-      <div style="color:#555;font-size:0.85em;">Local setup</div>
-    </div>
-    <div style="background:#1e1e38;border:1px solid #ffffff22;border-radius:4px;padding:8px;">
-      <div style="color:#aaa;font-weight:bold;">HEARTBEAT.md</div>
-      <div style="color:#555;font-size:0.85em;">Periodic tasks</div>
-    </div>
-    <div style="background:#1e1e38;border:1px solid #00ccff33;border-radius:4px;padding:8px;">
-      <div style="color:#00ccff;font-weight:bold;">memory_search recall</div>
-      <div style="color:#555;font-size:0.85em;">On-demand snippets</div>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════ DREAMING + DIARY ═══════════════════ -->
-<div class="dream-grid">
-
-  <!-- SLEEP PHASES -->
-  <div>
-    <div class="panel purple" style="border-radius:6px;overflow:hidden;margin-bottom:8px;">
-      <div class="col-header">💤 Dreaming System — Background Consolidation (6×/day cron)</div>
-      <div class="panel-body" style="padding:10px;">
-
-        <div style="font-size:0.65em;color:#666;margin-bottom:8px;letter-spacing:1px;">INPUT: session transcripts → memory/.dreams/session-corpus/YYYY-MM-DD.txt</div>
+    <!-- Sleep Phases -->
+    <div class="panel purple">
+      <div class="panel-head">Background Memory Consolidation — Runs 6×/day</div>
+      <div class="panel-body">
+        <div style="font-size:0.65rem;color:var(--dim);margin-bottom:0.6rem;letter-spacing:0.08em;">
+          INPUT: session transcripts → memory/.dreams/session-corpus/YYYY-MM-DD.txt
+        </div>
 
         <div class="sleep-phase">
           <div class="sp-name">💤 LIGHT SLEEP — Phase 1</div>
-          <div class="sp-desc">Ingest daily notes + session transcripts. Deduplicate. Stage candidates in short-term recall store. Record light-phase signals.</div>
+          <div class="sp-desc">Ingest daily notes + session transcripts. Deduplicate. Stage candidates in short-term recall store.</div>
         </div>
         <div class="phase-arrow">▼</div>
         <div class="sleep-phase">
           <div class="sp-name">😴 REM SLEEP — Phase 2</div>
-          <div class="sp-desc">Read all staged entries from past 7 days. Extract recurring themes by concept frequency. Record REM reinforcement signals. Generate narrative diary entry.</div>
+          <div class="sp-desc">Read all staged entries from past 7 days. Extract recurring themes by concept frequency. Generate narrative diary entry → DREAMS.md.</div>
         </div>
         <div class="phase-arrow">▼</div>
         <div class="sleep-phase">
           <div class="sp-name">🌙 DEEP SLEEP — Phase 3</div>
-          <div class="sp-desc">Score every candidate using 6 weighted signals: Relevance (0.30) · Frequency (0.24) · Query diversity (0.15) · Recency (0.15) · Consolidation (0.10) · Richness (0.06). Must pass minScore + minRecallCount + minUniqueQueries gates.</div>
+          <div class="sp-desc">Score every candidate: Relevance (0.30) · Frequency (0.24) · Query diversity (0.15) · Recency (0.15) · Consolidation (0.10) · Richness (0.06). Must pass score + recall + query-diversity gates.</div>
         </div>
 
-        <div class="promote-arrow" style="margin-top:10px;">
-          ⬆ IF SCORE PASSES THRESHOLD → writes to MEMORY.md (long-term promotion)
+        <div class="promote-bar">
+          ⬆ IF SCORE PASSES THRESHOLD → promoted to MEMORY.md (long-term storage)
         </div>
-
-      </div>
-    </div>
-  </div>
-
-  <!-- DREAM DIARY + SEARCH -->
-  <div style="display:flex;flex-direction:column;gap:12px;">
-
-    <div class="panel purple dreams-panel" style="border-radius:6px;overflow:hidden;">
-      <div class="col-header">📖 Dream Diary</div>
-      <div class="panel-body">
-        <div class="file-box">
-          <div class="file-name" style="color:#cc88ff">DREAMS.md</div>
-          <div class="file-desc">Narrative output. Human-readable literary diary. <strong>Never promoted</strong> to MEMORY.md — this is for reading, not reasoning.</div>
-        </div>
-        <div style="font-size:0.65em;color:#555;margin-top:6px;">← All 3 phases write here</div>
       </div>
     </div>
 
-    <div style="border:1px solid #ffffff22;border-radius:6px;background:#111;padding:12px;">
-      <div style="color:#fff;font-size:0.7em;font-weight:bold;letter-spacing:2px;margin-bottom:8px;">📂 ON-DISK STRUCTURE</div>
-      <div style="font-size:0.65em;color:#666;line-height:1.9;">
-        <span style="color:#00ff88">workspace/</span><br>
-        &nbsp;├── SOUL.md<br>
-        &nbsp;├── USER.md / IDENTITY.md<br>
-        &nbsp;├── AGENTS.md / TOOLS.md<br>
-        &nbsp;├── MEMORY.md <span style="color:#ffaa00">← long-term</span><br>
-        &nbsp;├── DREAMS.md <span style="color:#cc88ff">← diary</span><br>
-        &nbsp;└── memory/<br>
-        &nbsp;&nbsp;&nbsp;&nbsp;├── YYYY-MM-DD.md <span style="color:#00ccff">← daily</span><br>
-        &nbsp;&nbsp;&nbsp;&nbsp;├── jenny.md / devin.md…<br>
-        &nbsp;&nbsp;&nbsp;&nbsp;└── .dreams/<br>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── session-corpus/ <span style="color:#cc88ff">← transcripts</span><br>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── short-term-recall.json<br>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── phase-signals.json
+    <!-- File Tree + Dream Diary -->
+    <div style="display:flex;flex-direction:column;gap:0.8rem;">
+
+      <div class="panel purple">
+        <div class="panel-head">📖 Dream Diary</div>
+        <div class="panel-body">
+          <div class="file-chip" style="background:#120d1a">
+            <div class="fname" style="color:var(--purple)">DREAMS.md</div>
+            <div class="fdesc">Narrative literary output. Human-readable. <strong>Never promoted</strong> to MEMORY.md — for reading, not reasoning.</div>
+          </div>
+          <div style="font-size:0.63rem;color:var(--dim);margin-top:0.5rem;">← All 3 phases write here</div>
+        </div>
       </div>
+
+      <div class="panel white">
+        <div class="panel-head">📂 On-Disk Structure</div>
+        <div class="panel-body">
+          <div class="file-tree">
+            <span class="root">workspace/</span><br>
+            &nbsp;├── <span class="g">SOUL.md</span><br>
+            &nbsp;├── <span class="g">USER.md / IDENTITY.md</span><br>
+            &nbsp;├── <span class="g">AGENTS.md / TOOLS.md</span><br>
+            &nbsp;├── <span class="a">MEMORY.md</span> ← long-term<br>
+            &nbsp;├── <span class="p">DREAMS.md</span> ← diary<br>
+            &nbsp;└── memory/<br>
+            &nbsp;&nbsp;&nbsp;├── <span class="c">YYYY-MM-DD.md</span> ← daily<br>
+            &nbsp;&nbsp;&nbsp;├── jenny.md / devin.md…<br>
+            &nbsp;&nbsp;&nbsp;└── .dreams/<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── session-corpus/<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── short-term-recall.json<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── phase-signals.json
+          </div>
+        </div>
+      </div>
+
     </div>
+  </div><!-- /bottom-grid -->
 
+  <!-- MEMORY SEARCH BAR -->
+  <div class="search-bar">
+    <div class="sb-icon">🔍</div>
+    <div>
+      <div class="sb-title">memory_search — Semantic Vector Search</div>
+      <div class="sb-desc">Searches MEMORY.md + memory/*.md + indexed session transcripts on demand. Recalled snippets are injected into the active context window when relevant. This is how past knowledge surfaces without loading every file every session.</div>
+    </div>
+    <div class="sb-tag">→ injected into context on recall</div>
   </div>
-</div><!-- /dream-grid -->
 
-<!-- ═══════════════════ MEMORY SEARCH ═══════════════════ -->
-<div class="search-bar">
-  <div class="sb-icon">🔍</div>
-  <div>
-    <div class="sb-title">memory_search — Semantic Vector Search</div>
-    <div class="sb-desc">Searches MEMORY.md + memory/*.md + indexed session transcripts on demand. Recalled snippets are injected into the active context window when relevant. This is how past knowledge surfaces during a conversation without loading every file.</div>
+  <!-- FOOTER -->
+  <div class="footer">
+    Generated by Mazer · OpenClaw 2026.4.21 · AtomMan X7 Ti &nbsp;·&nbsp;
+    <a href="/">mazerdaze.com</a>
   </div>
-  <div class="sb-arrow">→ injected into context window on recall</div>
-</div>
-
-<div style="text-align:center;margin-top:20px;font-size:0.6em;color:#333;letter-spacing:2px;">
-  GENERATED BY SCRUMBOT · OPENCLAW 2026.4.21 · ATOMMMAN X7 Ti
-</div>
 
 </body>
 </html>
