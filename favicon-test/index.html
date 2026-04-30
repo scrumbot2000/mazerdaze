@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/jpeg" href="/favicon-test/fav-4-brackets-no-nose.jpg">
+  <title>Favicon Test — MazerDaze</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #060608; color: #00cc66; font-family: 'Courier New', monospace; padding: 40px; }
+    h1 { font-size: 1.4rem; margin-bottom: 8px; }
+    p { color: #007a3d; margin-bottom: 40px; font-size: 0.9rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; }
+    .card { border: 1px solid #00cc6644; padding: 20px; text-align: center; }
+    .card img { width: 128px; height: 128px; object-fit: contain; margin-bottom: 16px; image-rendering: pixelated; }
+    .card a { display: block; color: #00cc66; text-decoration: none; font-size: 0.85rem; margin-top: 8px; }
+    .card a:hover { text-decoration: underline; }
+    .card .label { font-size: 1rem; margin-bottom: 4px; }
+    .current { border-color: #00cc66; }
+    .badge { font-size: 0.7rem; color: #007a3d; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <h1>&gt; FAVICON_TEST.EXE</h1>
+  <p>Open each page in its own tab to compare icons in the tab bar.</p>
+  <div class="grid">
+    <div class="card">
+      <img src="fav-1-m.jpg" alt="M">
+      <div class="label">01 — The M</div>
+      <a href="page-1.html">Open in tab →</a>
+    </div>
+    <div class="card">
+      <img src="fav-2-no-brackets.jpg" alt="No brackets">
+      <div class="label">02 — Face, no brackets</div>
+      <a href="page-2.html">Open in tab →</a>
+    </div>
+    <div class="card">
+      <img src="fav-3-brackets-nose.jpg" alt="Brackets with nose">
+      <div class="label">03 — [0_0] with nose</div>
+      <a href="page-3.html">Open in tab →</a>
+    </div>
+    <div class="card current">
+      <img src="fav-4-brackets-no-nose.jpg" alt="Brackets no nose">
+      <div class="label">04 — [0 0] no nose</div>
+      <a href="page-4.html">Open in tab →</a>
+      <div class="badge">← current pick</div>
+    </div>
+  </div>
+</body>
+</html>
