@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/png" href="/favicon.png">
-  <title>Model Cost Offload — MazerDaze</title>
+  <title>Model Usage — MazerDaze</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
@@ -18,23 +18,6 @@
     }
     h1 { font-size: 1.3rem; margin-bottom: 4px; letter-spacing: 0.05em; }
     .subtitle { color: #007a3d; font-size: 0.8rem; margin-bottom: 40px; }
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 16px;
-      margin-bottom: 40px;
-    }
-    .card {
-      border: 1px solid #00cc6633;
-      padding: 16px 20px;
-      background: #0a0c0f;
-    }
-    .card .label { font-size: 0.75rem; color: #007a3d; margin-bottom: 6px; }
-    .card .value { font-size: 1.6rem; }
-    .card.sonnet .value { color: #ff6b9d; }
-    .card.haiku  .value { color: #b8a96a; }
-    .card.ollama .value { color: #00cc66; }
-    .card.saved  .value { color: #00ff99; }
     .chart-wrap {
       background: #0a0c0f;
       border: 1px solid #00cc6622;
@@ -42,8 +25,8 @@
       margin-bottom: 32px;
     }
     .chart-title { font-size: 0.8rem; color: #007a3d; margin-bottom: 16px; }
-    canvas { max-height: 320px; }
-    .note { font-size: 0.72rem; color: #005522; margin-top: 24px; line-height: 1.8; }
+    canvas { max-height: 360px; }
+    .note { font-size: 0.72rem; color: #005522; margin-top: 8px; line-height: 1.9; }
     a { color: #007a3d; text-decoration: none; }
     a:hover { color: #00cc66; }
     #loading { color: #007a3d; font-size: 0.9rem; padding: 40px 0; }
@@ -52,167 +35,173 @@
 </head>
 <body>
 
-<h1>&gt; MODEL_COST_OFFLOAD.SH</h1>
-<p class="subtitle" id="updated">Loading data...</p>
+<h1>&gt; MODEL_USAGE.SH</h1>
+<p class="subtitle" id="updated">Loading...</p>
 
-<div id="loading">&gt; fetching model-usage-data.json...</div>
-<div id="error">Failed to load data. Run model_usage_tracker.py to regenerate.</div>
+<div id="loading">&gt; fetching data...</div>
+<div id="error"></div>
 
 <div id="content" style="display:none">
-  <div class="cards">
-    <div class="card sonnet">
-      <div class="label">Sonnet spend</div>
-      <div class="value" id="totalSonnet">—</div>
-    </div>
-    <div class="card haiku">
-      <div class="label">Haiku spend</div>
-      <div class="value" id="totalHaiku">—</div>
-    </div>
-    <div class="card ollama">
-      <div class="label">Ollama turns (local)</div>
-      <div class="value" id="totalOllama">—</div>
-    </div>
-    <div class="card saved">
-      <div class="label">Est. saved vs all-Sonnet</div>
-      <div class="value" id="totalSaved">—</div>
-    </div>
+
+  <div class="chart-wrap">
+    <div class="chart-title">Daily token share — proportion of activity per model</div>
+    <canvas id="shareChart"></canvas>
   </div>
 
   <div class="chart-wrap">
-    <div class="chart-title">Daily token cost (USD) — Sonnet vs Haiku vs Ollama</div>
-    <canvas id="costChart"></canvas>
-  </div>
-
-  <div class="chart-wrap">
-    <div class="chart-title">Offload trend — % of activity on local/cheap models</div>
-    <canvas id="trendChart"></canvas>
+    <div class="chart-title">Daily activity volume — estimated tokens (relative)</div>
+    <canvas id="volumeChart"></canvas>
   </div>
 
   <p class="note">
-    * April data seeded from Anthropic console estimates. Ollama tracking begins 2026-04-30.<br>
-    * Ollama cost = $0 (local RTX 3060). Turn count shown scaled for visibility.<br>
-    * Data refreshed nightly via cron · <a href="/">← mazerdaze.com</a>
+    * Apr data estimated from Anthropic console. Token counts inferred from cost ratios (Sonnet ≈ $9/M blended, Haiku ≈ $2/M).<br>
+    * Ollama = local RTX 3060 — $0, tracked by turns × estimated tokens/turn.<br>
+    * Updated nightly · <a href="/">← mazerdaze.com</a>
   </p>
 </div>
 
 <script>
+const SONNET_PER_M = 9;   // blended $/M tokens
+const HAIKU_PER_M  = 2;   // blended $/M tokens
+const OLLAMA_TPT   = 2000; // estimated tokens per Ollama turn
+
 const gridColor = '#00cc6618';
 const tickColor = '#007a3d';
 
+function fmtTokens(n) {
+  if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n/1e3).toFixed(0) + 'k';
+  return n.toString();
+}
+
 fetch('/model-usage-data.json?t=' + Date.now())
-  .then(r => {
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    return r.json();
-  })
+  .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
   .then(data => {
     document.getElementById('loading').style.display = 'none';
     document.getElementById('content').style.display = 'block';
 
     const { labels, sonnet, haiku, ollama_turns, updated } = data;
 
-    // Updated subtitle
-    const dt = updated ? new Date(updated).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) : '—';
+    const dt = updated
+      ? new Date(updated).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'})
+      : '—';
     document.getElementById('updated').textContent =
-      `Daily AI spend — Sonnet / Haiku / Ollama (local, free) · Updated: ${dt}`;
+      `Token share by model — Sonnet / Haiku / Ollama · Updated ${dt}`;
 
-    // Summary cards
-    const tSonnet = sonnet.reduce((a,b)=>a+b,0);
-    const tHaiku  = haiku.reduce((a,b)=>a+b,0);
-    const tOllama = ollama_turns.reduce((a,b)=>a+b,0);
-    const tSaved  = tHaiku * 0.8 + tOllama * 3.0;
+    // Convert costs → estimated tokens
+    const sonnetTok = sonnet.map(c => Math.round((c / SONNET_PER_M) * 1e6));
+    const haikuTok  = haiku.map(c  => Math.round((c / HAIKU_PER_M)  * 1e6));
+    const ollamaTok = ollama_turns.map(t => t * OLLAMA_TPT);
 
-    document.getElementById('totalSonnet').textContent = '$' + tSonnet.toFixed(0);
-    document.getElementById('totalHaiku').textContent  = '$' + tHaiku.toFixed(0);
-    document.getElementById('totalOllama').textContent = tOllama + ' turns';
-    document.getElementById('totalSaved').textContent  = '~$' + tSaved.toFixed(0);
+    // Totals per day
+    const totals = labels.map((_, i) => sonnetTok[i] + haikuTok[i] + ollamaTok[i]);
 
-    // Scale ollama turns for bar visibility
-    const ollamaBar = ollama_turns.map(v => v * 2);
+    // Proportions (%)
+    const sonnetPct = labels.map((_, i) => totals[i] ? Math.round(sonnetTok[i]/totals[i]*100) : 0);
+    const haikuPct  = labels.map((_, i) => totals[i] ? Math.round(haikuTok[i]/totals[i]*100)  : 0);
+    const ollamaPct = labels.map((_, i) => totals[i] ? Math.round(ollamaTok[i]/totals[i]*100) : 0);
 
-    // Chart 1 — stacked cost bars
-    new Chart(document.getElementById('costChart'), {
+    // Chart 1 — 100% stacked proportion
+    new Chart(document.getElementById('shareChart'), {
       type: 'bar',
       data: {
         labels,
         datasets: [
           {
-            label: 'Claude Sonnet 4.6',
-            data: sonnet,
+            label: 'Sonnet 4.6',
+            data: sonnetPct,
             backgroundColor: '#ff6b9d',
-            stack: 'cost',
+            stack: 's',
           },
           {
-            label: 'Claude Haiku 4.5',
-            data: haiku,
+            label: 'Haiku 4.5',
+            data: haikuPct,
             backgroundColor: '#b8a96a',
-            stack: 'cost',
+            stack: 's',
           },
           {
-            label: 'Ollama (local · $0)',
-            data: ollamaBar,
-            backgroundColor: '#00cc6699',
-            stack: 'cost',
+            label: 'Ollama (local)',
+            data: ollamaPct,
+            backgroundColor: '#00cc66',
+            stack: 's',
           },
         ]
       },
       options: {
         responsive: true,
         plugins: {
-          legend: { labels: { color: '#00cc66', font: { family: 'Share Tech Mono', size: 11 } } },
+          legend: {
+            labels: { color: '#00cc66', font: { family: 'Share Tech Mono', size: 11 } }
+          },
           tooltip: {
             callbacks: {
               label: ctx => {
-                if (ctx.dataset.label.includes('Ollama')) {
-                  return ` Ollama: ${ollama_turns[ctx.dataIndex]} turn(s) — $0.00`;
-                }
-                return ` ${ctx.dataset.label}: $${ctx.raw.toFixed(0)}`;
+                const i = ctx.dataIndex;
+                const model = ctx.dataset.label;
+                let tok;
+                if (model.includes('Sonnet')) tok = sonnetTok[i];
+                else if (model.includes('Haiku')) tok = haikuTok[i];
+                else tok = ollamaTok[i];
+                return ` ${model}: ${ctx.raw}%  (~${fmtTokens(tok)} tokens)`;
               }
             }
           }
         },
         scales: {
-          x: { ticks: { color: tickColor }, grid: { color: gridColor } },
+          x: { stacked: true, ticks: { color: tickColor }, grid: { color: gridColor } },
           y: {
             stacked: true,
-            ticks: { color: tickColor, callback: v => '$' + v },
+            min: 0, max: 100,
+            ticks: { color: tickColor, callback: v => v + '%' },
             grid: { color: gridColor },
           }
         }
       }
     });
 
-    // Chart 2 — offload % trend line
-    const offloadPct = labels.map((_, i) => {
-      const total = sonnet[i] + haiku[i] + ollamaBar[i];
-      if (total === 0) return 0;
-      return Math.round(((haiku[i] + ollamaBar[i]) / total) * 100);
-    });
-
-    new Chart(document.getElementById('trendChart'), {
-      type: 'line',
+    // Chart 2 — absolute volume stacked bars
+    new Chart(document.getElementById('volumeChart'), {
+      type: 'bar',
       data: {
         labels,
-        datasets: [{
-          label: '% offloaded from Sonnet (Haiku + Ollama)',
-          data: offloadPct,
-          borderColor: '#00cc66',
-          backgroundColor: '#00cc6622',
-          fill: true,
-          tension: 0.3,
-          pointBackgroundColor: '#00cc66',
-          pointRadius: 3,
-        }]
+        datasets: [
+          {
+            label: 'Sonnet 4.6',
+            data: sonnetTok.map(v => Math.round(v/1000)),
+            backgroundColor: '#ff6b9d',
+            stack: 'v',
+          },
+          {
+            label: 'Haiku 4.5',
+            data: haikuTok.map(v => Math.round(v/1000)),
+            backgroundColor: '#b8a96a',
+            stack: 'v',
+          },
+          {
+            label: 'Ollama (local)',
+            data: ollamaTok.map(v => Math.round(v/1000)),
+            backgroundColor: '#00cc66',
+            stack: 'v',
+          },
+        ]
       },
       options: {
         responsive: true,
         plugins: {
-          legend: { labels: { color: '#00cc66', font: { family: 'Share Tech Mono', size: 11 } } },
+          legend: {
+            labels: { color: '#00cc66', font: { family: 'Share Tech Mono', size: 11 } }
+          },
+          tooltip: {
+            callbacks: {
+              label: ctx => ` ${ctx.dataset.label}: ~${fmtTokens(ctx.raw * 1000)} tokens`
+            }
+          }
         },
         scales: {
-          x: { ticks: { color: tickColor }, grid: { color: gridColor } },
+          x: { stacked: true, ticks: { color: tickColor }, grid: { color: gridColor } },
           y: {
-            min: 0, max: 100,
-            ticks: { color: tickColor, callback: v => v + '%' },
+            stacked: true,
+            ticks: { color: tickColor, callback: v => fmtTokens(v * 1000) },
             grid: { color: gridColor },
           }
         }
@@ -221,8 +210,9 @@ fetch('/model-usage-data.json?t=' + Date.now())
   })
   .catch(err => {
     document.getElementById('loading').style.display = 'none';
-    document.getElementById('error').style.display = 'block';
-    document.getElementById('error').textContent = '> error: ' + err.message;
+    const el = document.getElementById('error');
+    el.style.display = 'block';
+    el.textContent = '> error: ' + err.message;
   });
 </script>
 </body>
