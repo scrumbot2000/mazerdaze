@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <title>Model Cost Offload — MazerDaze</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #060608;
+      color: #00cc66;
+      font-family: 'Share Tech Mono', monospace;
+      min-height: 100vh;
+      padding: 40px 24px;
+    }
+    h1 { font-size: 1.3rem; margin-bottom: 4px; letter-spacing: 0.05em; }
+    .subtitle { color: #007a3d; font-size: 0.8rem; margin-bottom: 40px; }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+    .card {
+      border: 1px solid #00cc6633;
+      padding: 16px 20px;
+      background: #0a0c0f;
+    }
+    .card .label { font-size: 0.75rem; color: #007a3d; margin-bottom: 6px; }
+    .card .value { font-size: 1.6rem; }
+    .card.sonnet .value { color: #ff6b9d; }
+    .card.haiku  .value { color: #b8a96a; }
+    .card.ollama .value { color: #00cc66; }
+    .card.saved  .value { color: #00ff99; }
+    .chart-wrap {
+      background: #0a0c0f;
+      border: 1px solid #00cc6622;
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+    .chart-title { font-size: 0.8rem; color: #007a3d; margin-bottom: 16px; }
+    canvas { max-height: 320px; }
+    .note { font-size: 0.72rem; color: #005522; margin-top: 24px; }
+    a { color: #007a3d; text-decoration: none; }
+    a:hover { color: #00cc66; }
+  </style>
+</head>
+<body>
+
+<h1>&gt; MODEL_COST_OFFLOAD.SH</h1>
+<p class="subtitle">Daily AI spend — Sonnet / Haiku / Ollama (local, free) · Updated: 2026-04-30</p>
+
+<div class="cards">
+  <div class="card sonnet">
+    <div class="label">Sonnet spend (Apr)</div>
+    <div class="value" id="totalSonnet">—</div>
+  </div>
+  <div class="card haiku">
+    <div class="label">Haiku spend (Apr)</div>
+    <div class="value" id="totalHaiku">—</div>
+  </div>
+  <div class="card ollama">
+    <div class="label">Ollama turns (local)</div>
+    <div class="value" id="totalOllama">—</div>
+  </div>
+  <div class="card saved">
+    <div class="label">Est. saved vs all-Sonnet</div>
+    <div class="value" id="totalSaved">—</div>
+  </div>
+</div>
+
+<div class="chart-wrap">
+  <div class="chart-title">Daily token cost (USD) — Sonnet vs Haiku vs Ollama</div>
+  <canvas id="costChart"></canvas>
+</div>
+
+<div class="chart-wrap">
+  <div class="chart-title">Offload trend — % of activity on local/cheap models</div>
+  <canvas id="trendChart"></canvas>
+</div>
+
+<p class="note">
+  * April data seeded from Anthropic console estimates. Ollama tracking begins 2026-04-30 (GPU install date).<br>
+  * Ollama cost = $0 (local RTX 3060). Turn count shown on secondary axis.<br>
+  * <a href="/">← back to mazerdaze.com</a>
+</p>
+
+<script>
+const labels = ["04-02","04-03","04-04","04-05","04-06","04-07","04-08","04-09","04-10","04-11","04-12","04-13","04-14","04-15","04-16","04-17","04-18","04-19","04-20","04-21","04-22","04-23","04-24","04-25","04-26","04-27","04-28","04-29","04-30"];
+const sonnet = [8,5,12,10,18,20,22,30,25,28,45,30,25,120,30,35,20,25,20,22,75,30,45,25,20,22,18,20,25];
+const haiku  = [0,0,0,0,0,0,2,5,5,8,5,8,5,5,12,10,15,12,15,15,5,18,10,20,18,15,20,18,15];
+const ollama = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]; // 1 turn Apr 30
+
+// Summary cards
+const tSonnet = sonnet.reduce((a,b)=>a+b,0);
+const tHaiku  = haiku.reduce((a,b)=>a+b,0);
+const tOllama = ollama.reduce((a,b)=>a+b,0);
+const tSaved  = tHaiku * 0.80 + tOllama * 3.00; // rough estimate
+
+document.getElementById('totalSonnet').textContent = '$' + tSonnet.toFixed(0);
+document.getElementById('totalHaiku').textContent  = '$' + tHaiku.toFixed(0);
+document.getElementById('totalOllama').textContent = tOllama + ' turns';
+document.getElementById('totalSaved').textContent  = '~$' + tSaved.toFixed(0);
+
+const gridColor = '#00cc6618';
+const tickColor = '#007a3d';
+
+// Chart 1 — stacked bar
+new Chart(document.getElementById('costChart'), {
+  type: 'bar',
+  data: {
+    labels,
+    datasets: [
+      {
+        label: 'Claude Sonnet 4.6',
+        data: sonnet,
+        backgroundColor: '#ff6b9d',
+        stack: 'cost',
+      },
+      {
+        label: 'Claude Haiku 4.5',
+        data: haiku,
+        backgroundColor: '#b8a96a',
+        stack: 'cost',
+      },
+      {
+        label: 'Ollama (local · $0)',
+        data: ollama.map(v => v * 2), // scale for visibility
+        backgroundColor: '#00cc6699',
+        stack: 'cost',
+      },
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { labels: { color: '#00cc66', font: { family: 'Share Tech Mono', size: 11 } } },
+      tooltip: {
+        callbacks: {
+          label: ctx => {
+            if (ctx.dataset.label.includes('Ollama')) {
+              return ` Ollama: ${ollama[ctx.dataIndex]} turn(s) (free)`;
+            }
+            return ` ${ctx.dataset.label}: $${ctx.raw.toFixed(0)}`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: { ticks: { color: tickColor }, grid: { color: gridColor } },
+      y: {
+        ticks: { color: tickColor, callback: v => '$' + v },
+        grid: { color: gridColor },
+        stacked: true,
+      }
+    }
+  }
+});
+
+// Chart 2 — offload % trend
+const offloadPct = labels.map((_, i) => {
+  const total = sonnet[i] + haiku[i] + (ollama[i] * 2);
+  if (total === 0) return 0;
+  return Math.round(((haiku[i] + ollama[i] * 2) / total) * 100);
+});
+
+new Chart(document.getElementById('trendChart'), {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [{
+      label: '% offloaded from Sonnet (Haiku + Ollama)',
+      data: offloadPct,
+      borderColor: '#00cc66',
+      backgroundColor: '#00cc6622',
+      fill: true,
+      tension: 0.3,
+      pointBackgroundColor: '#00cc66',
+      pointRadius: 3,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { labels: { color: '#00cc66', font: { family: 'Share Tech Mono', size: 11 } } },
+    },
+    scales: {
+      x: { ticks: { color: tickColor }, grid: { color: gridColor } },
+      y: {
+        min: 0, max: 100,
+        ticks: { color: tickColor, callback: v => v + '%' },
+        grid: { color: gridColor },
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>
