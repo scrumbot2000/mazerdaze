@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WOPR — War Operation Plan Response</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #080808;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* CRT flicker */
+  @keyframes flicker {
+    0%   { opacity: 1; }
+    92%  { opacity: 1; }
+    93%  { opacity: 0.92; }
+    94%  { opacity: 1; }
+    96%  { opacity: 0.95; }
+    98%  { opacity: 1; }
+    99%  { opacity: 0.93; }
+    100% { opacity: 1; }
+  }
+
+  @keyframes blink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  #crt {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: #080808;
+    animation: flicker 8s infinite;
+    font-family: 'Courier New', Courier, monospace;
+    color: #33ff33;
+    text-shadow: 0 0 8px #33ff33, 0 0 2px #33ff33;
+    overflow: hidden;
+  }
+
+  /* Scanline overlay */
+  #crt::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.15) 2px,
+      rgba(0, 0, 0, 0.15) 4px
+    );
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  /* Vignette */
+  #crt::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.6) 100%);
+    pointer-events: none;
+    z-index: 11;
+  }
+
+  #header {
+    padding: 12px 20px 6px 20px;
+    font-size: 11px;
+    letter-spacing: 3px;
+    border-bottom: 1px solid #1a661a;
+    flex-shrink: 0;
+    opacity: 0.7;
+    white-space: pre;
+    line-height: 1.3;
+  }
+
+  #output {
+    flex: 1;
+    padding: 16px 24px 8px 24px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    font-size: 14px;
+    line-height: 1.7;
+    letter-spacing: 0.05em;
+    scrollbar-width: none;
+  }
+
+  #output::-webkit-scrollbar {
+    display: none;
+  }
+
+  .line {
+    white-space: pre-wrap;
+    word-break: break-word;
+    min-height: 1.7em;
+  }
+
+  .line.user-input {
+    color: #22bb22;
+    font-style: italic;
+    text-shadow: 0 0 6px #22bb22, 0 0 2px #22bb22;
+  }
+
+  .line.dim {
+    color: #1a991a;
+    text-shadow: 0 0 4px #1a991a;
+  }
+
+  .line.bright {
+    color: #66ff66;
+    text-shadow: 0 0 12px #66ff66, 0 0 4px #66ff66;
+  }
+
+  #input-area {
+    display: flex;
+    align-items: center;
+    padding: 8px 24px 16px 24px;
+    border-top: 1px solid #1a661a;
+    flex-shrink: 0;
+  }
+
+  #prompt {
+    color: #33ff33;
+    text-shadow: 0 0 8px #33ff33, 0 0 2px #33ff33;
+    font-size: 14px;
+    margin-right: 8px;
+    font-family: 'Courier New', Courier, monospace;
+    letter-spacing: 0.05em;
+  }
+
+  #user-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #33ff33;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14px;
+    letter-spacing: 0.05em;
+    text-shadow: 0 0 8px #33ff33, 0 0 2px #33ff33;
+    caret-color: transparent;
+  }
+
+  #cursor {
+    display: inline-block;
+    width: 9px;
+    height: 16px;
+    background: #33ff33;
+    box-shadow: 0 0 8px #33ff33;
+    animation: blink 1s step-end infinite;
+    vertical-align: middle;
+    flex-shrink: 0;
+  }
+
+  #input-area.hidden {
+    visibility: hidden;
+  }
+</style>
+</head>
+<body>
+<div id="crt">
+  <div id="header">W O P R  ///  W A R  O P E R A T I O N  P L A N  R E S P O N S E  ///  C L A S S I F I E D</div>
+  <div id="output"></div>
+  <div id="input-area" class="hidden">
+    <span id="prompt">&gt;</span>
+    <input type="text" id="user-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+    <div id="cursor"></div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  const output = document.getElementById('output');
+  const inputArea = document.getElementById('input-area');
+  const userInputEl = document.getElementById('user-input');
+  const promptEl = document.getElementById('prompt');
+
+  // ── State ──────────────────────────────────────────
+  let state = 'BOOT';
+  let printQueue = [];
+  let isPrinting = false;
+  let inputEnabled = false;
+  let inputCallback = null;
+  let chessBoard = null;
+  let chessMoveCount = 0;
+  let targetCities = [];
+
+  // ── Print Engine ──────────────────────────────────
+  function scrollBottom() {
+    output.scrollTop = output.scrollHeight;
+  }
+
+  function printChar(lineEl, text, idx, speed, resolve) {
+    if (idx >= text.length) {
+      // Occasional glitch: 1% chance on line end
+      if (Math.random() < 0.01 && lineEl.textContent.length > 4) {
+        const chars = lineEl.textContent.split('');
+        const glitchIdx = Math.floor(Math.random() * chars.length);
+        const orig = chars[glitchIdx];
+        chars[glitchIdx] = String.fromCharCode(33 + Math.floor(Math.random() * 90));
+        lineEl.textContent = chars.join('');
+        setTimeout(() => {
+          chars[glitchIdx] = orig;
+          lineEl.textContent = chars.join('');
+          resolve();
+        }, 80);
+      } else {
+        resolve();
+      }
+      return;
+    }
+    lineEl.textContent += text[idx];
+    scrollBottom();
+    const jitter = speed + (Math.random() * speed * 0.5 - speed * 0.25);
+    setTimeout(() => printChar(lineEl, text, idx + 1, speed, resolve), Math.max(5, jitter));
+  }
+
+  function typeText(text, speed, cssClass) {
+    return new Promise(resolve => {
+      const lineEl = document.createElement('div');
+      lineEl.className = 'line' + (cssClass ? ' ' + cssClass : '');
+      output.appendChild(lineEl);
+      scrollBottom();
+      if (text === '') {
+        resolve();
+        return;
+      }
+      printChar(lineEl, text, 0, speed || 25, resolve);
+    });
+  }
+
+  function printInstant(text, cssClass) {
+    const lineEl = document.createElement('div');
+    lineEl.className = 'line' + (cssClass ? ' ' + cssClass : '');
+    lineEl.textContent = text;
+    output.appendChild(lineEl);
+    scrollBottom();
+  }
+
+  function blankLine() {
+    return typeText('', 0);
+  }
+
+  function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  function clearOutput() {
+    return new Promise(resolve => {
+      output.style.transition = 'opacity 0.4s';
+      output.style.opacity = '0';
+      setTimeout(() => {
+        output.innerHTML = '';
+        output.style.transition = 'opacity 0.3s';
+        output.style.opacity = '1';
+        resolve();
+      }, 400);
+    });
+  }
+
+  // ── Input Handling ────────────────────────────────
+  function waitForInput(promptText) {
+    return new Promise(resolve => {
+      promptEl.textContent = (promptText || '>') + ' ';
+      inputArea.classList.remove('hidden');
+      inputEnabled = true;
+      userInputEl.value = '';
+      userInputEl.focus();
+      inputCallback = (val) => {
+        inputEnabled = false;
+        inputArea.classList.add('hidden');
+        // Echo input
+        printInstant('> ' + val.toUpperCase(), 'user-input');
+        resolve(val.trim());
+      };
+    });
+  }
+
+  userInputEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && inputEnabled && inputCallback) {
+      const val = userInputEl.value;
+      userInputEl.value = '';
+      const cb = inputCallback;
+      inputCallback = null;
+      cb(val);
+    }
+  });
+
+  // Keep focus
+  document.addEventListener('click', () => {
+    if (inputEnabled) userInputEl.focus();
+  });
+
+  // ── AUTH NOISE ────────────────────────────────────
+  function authNoise() {
+    return new Promise(async resolve => {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+      for (let i = 0; i < 6; i++) {
+        let noise = '';
+        for (let j = 0; j < 32; j++) {
+          noise += chars[Math.floor(Math.random() * chars.length)];
+        }
+        printInstant(noise, 'dim');
+        await delay(120);
+      }
+      await delay(300);
+      resolve();
+    });
+  }
+
+  // ── BOOT SEQUENCE ─────────────────────────────────
+  async function bootSequence() {
+    await delay(400);
+    await typeText('UNITED STATES AIR FORCE', 30);
+    await typeText('NORAD COMMAND CENTER', 30);
+    await typeText('CHEYENNE MOUNTAIN COMPLEX', 30);
+    await blankLine();
+    await delay(600);
+    await typeText('CONNECTING TO WOPR...', 40);
+    await delay(800);
+
+    // Connection dots
+    const connLine = document.createElement('div');
+    connLine.className = 'line dim';
+    output.appendChild(connLine);
+    for (let i = 0; i < 18; i++) {
+      connLine.textContent += '.';
+      scrollBottom();
+      await delay(80 + Math.random() * 60);
+    }
+    await delay(400);
+
+    await blankLine();
+    await typeText('WAR OPERATION PLAN RESPONSE', 25, 'bright');
+    await typeText('SYSTEM ONLINE', 25, 'bright');
+    await blankLine();
+    await delay(500);
+
+    // Blinking "READY" for 1.5s
+    const readyLine = document.createElement('div');
+    readyLine.className = 'line bright';
+    readyLine.textContent = '[ READY ]';
+    readyLine.style.animation = 'blink 0.5s step-end infinite';
+    output.appendChild(readyLine);
+    scrollBottom();
+    await delay(1500);
+    readyLine.style.animation = '';
+    readyLine.textContent = '';
+
+    await blankLine();
+    state = 'LOGIN';
+    await loginState();
+  }
+
+  // ── LOGIN ─────────────────────────────────────────
+  async function loginState() {
+    const input = await waitForInput('LOGON:');
+    await authNoise();
+    await delay(400);
+    await clearOutput();
+    await greetingSequence();
+  }
+
+  // ── GREETING ──────────────────────────────────────
+  async function greetingSequence() {
+    state = 'GREETING';
+    await delay(300);
+    await typeText('GREETINGS PROFESSOR FALKEN.', 30, 'bright');
+    await blankLine();
+    await typeText('HOW ARE YOU FEELING TODAY?', 30);
+    await blankLine();
+
+    await waitForInput('>');
+    await blankLine();
+    await typeText('EXCELLENT. IT\'S BEEN A LONG TIME. CAN YOU EXPLAIN', 28);
+    await typeText('THE REMOVAL OF YOUR USER ACCOUNT ON 6/23/73?', 28);
+    await blankLine();
+
+    await waitForInput('>');
+    await blankLine();
+    await typeText('YES, THEY DO. SHALL WE PLAY A GAME?', 28);
+    await blankLine();
+    await delay(400);
+
+    await showGameMenu();
+  }
+
+  // ── GAME MENU ─────────────────────────────────────
+  async function showGameMenu() {
+    state = 'MENU';
+    await typeText('GAMES:', 25);
+    await blankLine();
+    const games = [
+      ' 1.  CHESS',
+      ' 2.  CHECKERS',
+      ' 3.  BACKGAMMON',
+      ' 4.  POKER',
+      ' 5.  FIGHTER COMBAT',
+      ' 6.  GUERRILLA ENGAGEMENT',
+      ' 7.  DESERT WARFARE',
+      ' 8.  AIR-TO-GROUND ACTIONS',
+      ' 9.  THEATERWIDE TACTICAL WARFARE',
+      '10.  THEATERWIDE BIOTOXIC AND CHEMICAL WARFARE',
+      '11.  GLOBAL THERMONUCLEAR WAR',
+    ];
+    for (const g of games) {
+      await typeText(g, 18);
+    }
+    await blankLine();
+
+    const choice = await waitForInput('>');
+    await handleMenuChoice(choice);
+  }
+
+  function matchGame(input) {
+    const s = input.toLowerCase().trim();
+    if (s === '1' || s.includes('chess')) return 'chess';
+    if (s === '11' || s.includes('global') || s.includes('thermonuclear') || s.includes('gtw') || s.includes('nuclear')) return 'gtw';
+    const num = parseInt(s);
+    if (!isNaN(num) && num >= 2 && num <= 10) return 'generic_' + num;
+    // partial name match
+    const names = ['','chess','checkers','backgammon','poker','fighter combat','guerrilla engagement','desert warfare','air-to-ground actions','theaterwide tactical warfare','theaterwide biotoxic and chemical warfare'];
+    for (let i = 2; i <= 10; i++) {
+      if (names[i] && names[i].includes(s)) return 'generic_' + i;
+    }
+    return null;
+  }
+
+  async function handleMenuChoice(input) {
+    const game = matchGame(input);
+    if (!game) {
+      await typeText('SELECTION NOT RECOGNIZED. PLEASE CHOOSE A GAME.', 25);
+      await blankLine();
+      await showGameMenu();
+      return;
+    }
+    if (game === 'chess') {
+      await chessGame();
+    } else if (game === 'gtw') {
+      await gtwSequence();
+    } else {
+      const num = parseInt(game.split('_')[1]);
+      const names = ['','CHESS','CHECKERS','BACKGAMMON','POKER','FIGHTER COMBAT','GUERRILLA ENGAGEMENT','DESERT WARFARE','AIR-TO-GROUND ACTIONS','THEATERWIDE TACTICAL WARFARE','THEATERWIDE BIOTOXIC AND CHEMICAL WARFARE'];
+      await genericSim(names[num] || 'SIMULATION');
+    }
+  }
+
+  // ── GENERIC SIMULATION ────────────────────────────
+  async function genericSim(name) {
+    await blankLine();
+    await typeText(name + ' SIMULATION INITIATED.', 25);
+    await typeText('CALCULATING...', 35);
+    const dots = document.createElement('div');
+    dots.className = 'line dim';
+    output.appendChild(dots);
+    for (let i = 0; i < 12; i++) {
+      dots.textContent += '.';
+      scrollBottom();
+      await delay(150);
+    }
+    await blankLine();
+    await typeText('SIMULATION COMPLETE.', 25);
+    await typeText('NO VIABLE OUTCOME DETECTED.', 25);
+    await blankLine();
+    await typeText('SHALL WE PLAY ANOTHER GAME?', 25);
+    await blankLine();
+    await waitForInput('>');
+    await blankLine();
+    await showGameMenu();
+  }
+
+  // ── CHESS GAME ────────────────────────────────────
+  const initialBoard = [
+    ['♜','♞','♝','♛','♚','♝','♞','♜'],
+    ['♟','♟','♟','♟','♟','♟','♟','♟'],
+    ['.','.','.','.','.','.','.','.'],
+    ['.','.','.','.','.','.','.','.'],
+    ['.','.','.','.','.','.','.','.'],
+    ['.','.','.','.','.','.','.','.'],
+    ['♙','♙','♙','♙','♙','♙','♙','♙'],
+    ['♖','♘','♗','♕','♔','♗','♘','♖'],
+  ];
+
+  const woprMoves = [
+    'E7-E5','D8-H4','F8-C5','E8-G8','A8-E8','H4-F2'
+  ];
+
+  function renderBoard(board) {
+    let s = '';
+    for (let row of board) {
+      s += '  ' + row.join(' ') + '\n';
+    }
+    return s.trimEnd();
+  }
+
+  async function chessGame() {
+    chessMoveCount = 0;
+    chessBoard = initialBoard.map(r => [...r]);
+    await blankLine();
+    await typeText('CHESS. AN EXCELLENT CHOICE.', 25, 'bright');
+    await blankLine();
+    await printInstant(renderBoard(chessBoard));
+    await blankLine();
+
+    for (let i = 0; i < 4; i++) {
+      const move = await waitForInput('YOUR MOVE:');
+      await blankLine();
+
+      if (i < woprMoves.length) {
+        await typeText('WOPR: ' + woprMoves[i], 30, 'dim');
+      }
+
+      // Fake board update — just swap a couple pieces for visual
+      if (i === 0) {
+        chessBoard[4][4] = '♙';
+        chessBoard[6][4] = '.';
+      } else if (i === 1) {
+        chessBoard[3][3] = '♟';
+        chessBoard[1][3] = '.';
+      } else if (i === 2) {
+        chessBoard[3][2] = '♟';
+        chessBoard[3][3] = '.';
+      }
+
+      await blankLine();
+      printInstant(renderBoard(chessBoard));
+      await blankLine();
+
+      if (i === 3) break;
+    }
+
+    await delay(400);
+    await typeText('CHECKMATE.', 30, 'bright');
+    await typeText('GOOD GAME, PROFESSOR.', 30);
+    await blankLine();
+    await delay(600);
+    await showGameMenu();
+  }
+
+  // ── GLOBAL THERMONUCLEAR WAR ───────────────────────
+  async function gtwSequence() {
+    await blankLine();
+    await typeText('WOULDN\'T YOU PREFER A GOOD GAME OF CHESS?', 25);
+    await blankLine();
+
+    const r1 = await waitForInput('>');
+    if (r1.toLowerCase().includes('chess')) {
+      await blankLine();
+      await chessGame();
+      return;
+    }
+
+    await blankLine();
+    await typeText('FINE.', 35);
+    await blankLine();
+    await typeText('INITIATING GLOBAL THERMONUCLEAR WAR SIMULATION.', 25, 'bright');
+    await blankLine();
+    await delay(600);
+
+    // Map display
+    const mapLines = [
+      '       UNITED STATES                SOVIET UNION',
+      '    ________________              ________________',
+      '   /                \\            /                \\',
+      '  |   \u25C9 DENVER      |~~~~~~~~~~|  \u25C9 MOSCOW        |',
+      '  |   \u25C9 WASHINGTON  |          |  \u25C9 LENINGRAD     |',
+      '  |   \u25C9 NEW YORK    |          |  \u25C9 KIEV          |',
+      '  |   \u25C9 LOS ANGELES |          |  \u25C9 MINSK         |',
+      '   \\________________/            \\________________/',
+    ];
+    for (const l of mapLines) {
+      printInstant(l);
+      await delay(60);
+    }
+    await blankLine();
+    await typeText('WHICH SIDE DO YOU WANT?', 25);
+    await blankLine();
+    await typeText('  1.  UNITED STATES', 20);
+    await typeText('  2.  SOVIET UNION', 20);
+    await blankLine();
+
+    const side = await waitForInput('PLEASE CHOOSE ONE:');
+    const isUS = !side.includes('2') && !side.toLowerCase().includes('soviet');
+    const sideName = isUS ? 'UNITED STATES' : 'SOVIET UNION';
+
+    await blankLine();
+    await typeText('PLAYING AS: ' + sideName, 25, 'bright');
+    await blankLine();
+    await typeText('AWAITING FIRST STRIKE COMMAND.', 25);
+    await blankLine();
+    await typeText('PLEASE LIST PRIMARY TARGETS BY CITY AND/OR COUNTY NAME:', 22);
+    await typeText('(ENTER CITIES ONE AT A TIME. TYPE LAUNCH WHEN READY.)', 22, 'dim');
+    await blankLine();
+
+    targetCities = [];
+    while (targetCities.length < 5) {
+      const city = await waitForInput('>');
+      if (city.toLowerCase() === 'launch') break;
+      if (city.trim() === '') continue;
+      const cityName = city.toUpperCase();
+      targetCities.push(cityName);
+      await typeText('TARGET CONFIRMED: ' + cityName, 20, 'bright');
+    }
+
+    if (targetCities.length === 0) targetCities = ['MOSCOW', 'LENINGRAD', 'KIEV'];
+
+    await blankLine();
+    await delay(300);
+    await typeText('LAUNCH SEQUENCE INITIATED.', 30, 'bright');
+    await blankLine();
+
+    await missileSimulation(isUS);
+  }
+
+  async function missileSimulation(isUS) {
+    // DEFCON countdown
+    const defconStages = [
+      { level: 4, bar: '████░', cities: [targetCities[0] || 'TARGET ALPHA'] },
+      { level: 3, bar: '███░░', cities: [targetCities[1] || 'TARGET BRAVO'] },
+      { level: 2, bar: '██░░░', cities: [targetCities[2] || 'TARGET CHARLIE'] },
+      { level: 1, bar: '█░░░░', cities: targetCities.slice(3) },
+    ];
+
+    const trajectories = [
+      'USA ====\u27A4\u27A4\u27A4====\u27A4\u27A4==== USSR',
+      '    ====\u27A4\u27A4\u27A4====\u27A4\u27A4====    ',
+      '    ====\u27A4\u27A4====\u27A4\u27A4\u27A4====    ',
+      'USSR====\u27A4\u27A4\u27A4====\u27A4\u27A4==== USA',
+    ];
+
+    for (let i = 0; i < defconStages.length; i++) {
+      const stage = defconStages[i];
+      const missilesInFlight = (i + 1) * Math.floor(targetCities.length / 2 + 3);
+
+      await typeText('DEFCON STATUS: ' + stage.bar + ' ' + stage.level, 20, stage.level <= 2 ? 'bright' : '');
+      await typeText('MISSILES IN FLIGHT: ' + missilesInFlight, 20);
+      await blankLine();
+      printInstant('       ' + trajectories[Math.min(i, trajectories.length - 1)], 'dim');
+      await blankLine();
+
+      for (const city of stage.cities) {
+        if (city) {
+          await typeText('  \u2608 IMPACT: ' + city, 25, 'bright');
+          await delay(200);
+        }
+      }
+      await blankLine();
+      await delay(1200 - i * 200);
+    }
+
+    // SCENARIO RUNS
+    await typeText('RUNNING SCENARIOS...', 25);
+    await blankLine();
+
+    const scenarios = [
+      ['FIRST STRIKE - US WINS?', 'NO.'],
+      ['SOVIET RETALIATION - SURVIVORS?', 'NONE.'],
+      ['LIMITED EXCHANGE - VIABLE?', 'NO.'],
+      ['SURGICAL STRIKES - OUTCOME?', 'NONE.'],
+      ['DECAPITATION STRIKE - EFFECTIVE?', 'NEGATIVE.'],
+      ['COUNTERFORCE STRATEGY - RESULT?', 'UNACCEPTABLE LOSSES.'],
+      ['LAUNCH ON WARNING - STABLE?', 'NO.'],
+      ['SUBMARINE DETERRENCE - SUFFICIENT?', 'NEGATIVE.'],
+      ['ABM DEFENSE - COMPLETE?', 'NO.'],
+      ['CIVIL DEFENSE - ADEQUATE?', 'NO.'],
+      ['FALLOUT SURVIVAL - POSSIBLE?', 'MARGINAL.'],
+      ['SECOND STRIKE CAPABILITY - INTACT?', 'NEGATIVE.'],
+      ['NATO RESPONSE - COORDINATED?', 'NO.'],
+      ['WARSAW PACT REACTION - CONTROLLED?', 'NO.'],
+      ['ESCALATION MANAGEMENT - FEASIBLE?', 'NEGATIVE.'],
+      ['NUCLEAR WINTER - DURATION?', '3-5 YEARS.'],
+      ['HUMAN SURVIVAL - PROBABILITY?', 'UNKNOWN.'],
+      ['GLOBAL THERMONUCLEAR WAR...', ''],
+    ];
+
+    let speed = 80;
+    for (let i = 0; i < scenarios.length; i++) {
+      const [label, result] = scenarios[i];
+      const line = 'RUNNING SCENARIO: ' + label + (result ? ' ' + result : '');
+      printInstant(line, i >= scenarios.length - 3 ? 'bright' : 'dim');
+      scrollBottom();
+      await delay(speed);
+      if (speed > 30) speed = Math.max(30, speed - 5);
+    }
+
+    await delay(2000);
+    await clearOutput();
+    await delay(500);
+
+    // Final conclusion
+    await typeText('GREETINGS PROFESSOR FALKEN.', 30, 'bright');
+    await blankLine();
+    await delay(600);
+    await typeText('A STRANGE GAME.', 35, 'bright');
+    await blankLine();
+    await delay(800);
+    await typeText('THE ONLY WINNING MOVE IS NOT TO PLAY.', 28, 'bright');
+    await blankLine();
+    await blankLine();
+    await delay(1200);
+    await typeText('HOW ABOUT A NICE GAME OF CHESS?', 30);
+    await blankLine();
+
+    await waitForInput('>');
+    await blankLine();
+    await showGameMenu();
+  }
+
+  // ── CLICK TO FOCUS ────────────────────────────────
+  document.getElementById('crt').addEventListener('click', () => {
+    if (inputEnabled) userInputEl.focus();
+  });
+
+  // ── BOOT ──────────────────────────────────────────
+  bootSequence().catch(console.error);
+
+})();
+</script>
+</body>
+</html>
