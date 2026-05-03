@@ -171,6 +171,40 @@ body.has-selection .plot-cell:not(.planted):hover { background:rgba(180,230,80,0
 .toast .toast-emoji { font-size:34px; display:block; margin-bottom:6px; }
 .toast .toast-sub { font-size:12px; font-family:'Crimson Text',serif; font-style:italic; color:#b8d090; margin-top:4px; }
 
+/* ── GANDALF & FIREWORKS ── */
+.gandalf-walk {
+  position:fixed; bottom:70px; left:-100px;
+  font-size:64px; z-index:490; pointer-events:none;
+  display:none; filter:drop-shadow(2px 4px 8px rgba(0,0,0,0.6));
+  transition: none;
+}
+.gandalf-walk.active {
+  display:block;
+  animation: gandalfStride 7s linear forwards;
+}
+@keyframes gandalfStride {
+  0%   { left:-100px; bottom:70px; }
+  20%  { bottom:78px; }
+  40%  { bottom:65px; }
+  60%  { bottom:74px; }
+  80%  { bottom:68px; }
+  100% { left:calc(100vw + 100px); bottom:70px; }
+}
+
+.firework {
+  position:fixed; pointer-events:none; z-index:480;
+  width:0; height:0;
+}
+.spark {
+  position:absolute; width:9px; height:9px; border-radius:50%;
+  animation: sparkFly 1.3s ease-out forwards;
+}
+@keyframes sparkFly {
+  0%   { transform:rotate(var(--a)) translateY(0)   scale(1.2); opacity:1; }
+  70%  { opacity:0.8; }
+  100% { transform:rotate(var(--a)) translateY(-140px) scale(0); opacity:0; }
+}
+
 .sb-banner { position:fixed; top:-80px; left:0; right:0; text-align:center; background:rgba(160,80,20,0.96); color:#f0e8c0; font-family:'IM Fell English',serif; font-size:26px; padding:14px; z-index:150; letter-spacing:2px; border-bottom:3px solid #c8a040; box-shadow:0 4px 20px rgba(0,0,0,0.5); transition:top 0.5s cubic-bezier(0.34,1.56,0.64,1); }
 .sb-banner.show { top:0; }
 
@@ -388,6 +422,7 @@ body.has-selection .plot-cell:not(.planted):hover { background:rgba(180,230,80,0
 </div>
 
 <div class="gerald" id="gerald">🐢</div>
+<div class="gandalf-walk" id="gandalf-walk">🧙‍♂️</div>
 <div class="toast" id="toast"><span class="toast-emoji" id="toast-emoji">🎉</span><span id="toast-msg"></span><div class="toast-sub" id="toast-sub"></div></div>
 <div class="sb-banner" id="sb-banner">🍳 SECOND BREAKFAST TIME! 🥞🥚🍞🧈</div>
 
@@ -740,8 +775,10 @@ function advanceSeason(matched) {
   if (sty >= 4) {
     sty = 0; yrs++;
     localStorage.setItem('shireYears', yrs);
-    setTimeout(() => showToast('🎆', 'A full year in the Shire! (Year ' + yrs + ')',
-      'The garden has bloomed through all four seasons. Well done, hobbits!'), 6000);
+    setTimeout(() => {
+      showToast('🎆', 'A full year in the Shire! (Year ' + yrs + ')', '"I have found that it is the small everyday deeds of ordinary folk that keep the darkness at bay." — Gandalf');
+      triggerGandalfFireworks();
+    }, 6000);
   }
   localStorage.setItem('shireSeasonsThisYear', sty);
 }
@@ -769,6 +806,13 @@ function checkEasterEggs(plotId) {
   if (garden[plotId].filter(Boolean).length === CELLS && !plotFullAlerted[plotId]) {
     plotFullAlerted[plotId] = true;
     showToast('🌟', HOBBIT_NAMES[plotId] + "'s plot is in full bloom!", '"A wizard is never late, and a garden is never too full."');
+    // All 4 plots full = grand finale
+    if (PLOTS.every(p => garden[p].filter(Boolean).length === CELLS)) {
+      setTimeout(() => {
+        showToast('🎆', 'The Shire Garden is complete!', '"Even the smallest person can change the course of the future." — Gandalf lights his finest fireworks.');
+        triggerGandalfFireworks();
+      }, 1500);
+    }
   }
 }
 
@@ -783,6 +827,41 @@ function triggerSecondBreakfast() {
   const b = document.getElementById('sb-banner');
   b.classList.add('show');
   setTimeout(() => b.classList.remove('show'), 3500);
+}
+
+function triggerGandalfFireworks() {
+  // Gandalf walks across
+  const g = document.getElementById('gandalf-walk');
+  g.classList.add('active');
+  g.addEventListener('animationend', () => g.classList.remove('active'), { once:true });
+
+  // Fireworks burst every 350ms for 5 seconds
+  const colors = ['#ff4444','#ff8800','#ffdd00','#44ee44','#44aaff','#cc44ff','#ff44cc','#ffffff'];
+  let count = 0;
+  const interval = setInterval(() => {
+    const x = Math.random() * window.innerWidth * 0.8 + window.innerWidth * 0.1;
+    const y = Math.random() * window.innerHeight * 0.55 + 40;
+    launchFirework(x, y, colors);
+    if (++count >= 16) clearInterval(interval);
+  }, 320);
+}
+
+function launchFirework(x, y, colors) {
+  const burst = document.createElement('div');
+  burst.className = 'firework';
+  burst.style.left = x + 'px';
+  burst.style.top  = y + 'px';
+  document.body.appendChild(burst);
+  const numSparks = 14;
+  for (let i = 0; i < numSparks; i++) {
+    const s = document.createElement('div');
+    s.className = 'spark';
+    s.style.background = colors[Math.floor(Math.random() * colors.length)];
+    s.style.setProperty('--a', (i / numSparks * 360) + 'deg');
+    s.style.animationDelay = (Math.random() * 80) + 'ms';
+    burst.appendChild(s);
+  }
+  setTimeout(() => burst.remove(), 1600);
 }
 
 // ── TOAST ──
