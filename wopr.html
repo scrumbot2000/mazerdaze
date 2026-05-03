@@ -281,7 +281,34 @@
   const userInputEl = document.getElementById('user-input');
   const promptEl = document.getElementById('prompt');
 
-  // ── State ──────────────────────────────────────────
+  // ── WORKER BACKEND ────────────────────────────────
+  const WORKER = 'https://wopr-backend.scrumbot2000.workers.dev';
+
+  function woprPing(type, data) {
+    try {
+      fetch(WORKER + '/event', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({type, data: data || null}),
+      }).catch(() => {});
+    } catch(e) {}
+  }
+
+  async function woprChat(game, history, userMessage) {
+    try {
+      const resp = await fetch(WORKER + '/chat', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({game, history, userMessage}),
+      });
+      const d = await resp.json();
+      return d.text || 'SIMULATION DATA UNAVAILABLE.';
+    } catch(e) {
+      return 'TACTICAL COMPUTATION ERROR. STAND BY.';
+    }
+  }
+
+  // ── State ──────────────────────────────────────
   let state = 'BOOT';
   let printQueue = [];
   let isPrinting = false;
@@ -624,6 +651,7 @@
       const pw = await waitForInput('PASSWORD:');
       resetIdle();
       if (pw.toUpperCase().trim() === 'JOSHUA') {
+        woprPing('login');
         await blankLine();
         await typeText('PASSWORD ACCEPTED.', 25, 'bright');
         await typeText('IDENTITY CONFIRMED: PROFESSOR FALKEN.', 25);
@@ -820,26 +848,57 @@
 
   // ── GENERIC SIMULATION ────────────────────────────
   async function genericSim(name) {
+    woprPing('game', name);
+    const history = [];
     await blankLine();
     await typeText(name + ' SIMULATION INITIATED.', 25);
-    await typeText('CALCULATING...', 35);
-    const dots = document.createElement('div');
-    dots.className = 'line dim';
-    output.appendChild(dots);
-    for (let i = 0; i < 12; i++) {
-      dots.textContent += '.';
-      scrollBottom();
-      await delay(150);
+    await blankLine();
+
+    while (true) {
+      const dots = document.createElement('div');
+      dots.className = 'line dim';
+      output.appendChild(dots);
+      for (let i = 0; i < 10; i++) {
+        dots.textContent += '.';
+        scrollBottom();
+        await delay(120 + Math.random() * 80);
+      }
+      output.removeChild(dots);
+
+      const reply = await woprChat(name, history, history.length === 0 ? 'BEGIN SIMULATION.' : '__continue__');
+      history.push({role:'user', content: history.length===0?'BEGIN SIMULATION.':'CONTINUE.'});
+      history.push({role:'assistant', content: reply});
+      if (history.length > 12) history.splice(0, 2);
+
+      await typeText(reply, 18);
+      await blankLine();
+
+      const input = await waitForInput('>');
+      if (!input.trim()) { await showGameMenu(true); return; }
+      if (input.toUpperCase() === 'EXIT' || input.toUpperCase() === 'QUIT' || input.toUpperCase() === 'GAMES') {
+        await blankLine();
+        await showGameMenu(true);
+        return;
+      }
+
+      history.push({role:'user', content: input});
+      const resp = await woprChat(name, history.slice(0,-1), input);
+      history.push({role:'assistant', content: resp});
+      if (history.length > 12) history.splice(0, 2);
+
+      const thinking = document.createElement('div');
+      thinking.className = 'line dim';
+      output.appendChild(thinking);
+      for (let i = 0; i < 8; i++) {
+        thinking.textContent += '.';
+        scrollBottom();
+        await delay(140 + Math.random() * 90);
+      }
+      output.removeChild(thinking);
+
+      await typeText(resp, 18);
+      await blankLine();
     }
-    await blankLine();
-    await typeText('SIMULATION COMPLETE.', 25);
-    await typeText('NO VIABLE OUTCOME DETECTED.', 25);
-    await blankLine();
-    await typeText('SHALL WE PLAY ANOTHER GAME?', 25);
-    await blankLine();
-    await waitForInput('>');
-    await blankLine();
-    await showGameMenu(true);
   }
 
   // ── CHESS GAME ────────────────────────────────────
@@ -927,6 +986,7 @@
     await typeTextSlow('FINE.', 'bright');
     await delay(1800);
     await blankLine();
+    woprPing('gtw');
     await typeTextSlow('INITIATING GLOBAL THERMONUCLEAR WAR SIMULATION.', 'bright');
     await blankLine();
     await delay(900);
@@ -960,6 +1020,7 @@
       await typeText('TARGET CONFIRMED: ' + cityName, 18, 'bright');
     }
     if (targetCities.length === 0) targetCities = ['MOSCOW', 'LENINGRAD', 'KIEV'];
+    woprPing('launch', targetCities.join(', '));
 
     await blankLine();
     await delay(400);
