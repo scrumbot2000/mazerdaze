@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Wakely Family Shire Garden</title>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { min-height: 100vh; overflow-x: hidden; font-family: 'Crimson Text', Georgia, serif; color: #3b2a1a; }
+
+.bg-scene { position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:0; transition:filter 2s ease; }
+
+body.season-0 .header, body.season-0 .bottom-bar { background:rgba(110,50,75,0.88); }
+body.season-2 .header, body.season-2 .bottom-bar { background:rgba(100,55,15,0.88); }
+body.season-3 .header, body.season-3 .bottom-bar { background:rgba(25,45,80,0.88); }
+
+/* ── PLAYER SELECT OVERLAY ── */
+.ps-overlay {
+  position:fixed; inset:0; z-index:400;
+  background:rgba(15,28,8,0.93);
+  display:flex; align-items:center; justify-content:center;
+  backdrop-filter:blur(5px);
+}
+.ps-box {
+  background: linear-gradient(160deg, #f5ead0, #ede0c0);
+  border:3px solid #8b6340; border-radius:16px;
+  padding:24px 24px 20px; max-width:460px; width:92%;
+  box-shadow:0 12px 40px rgba(0,0,0,0.6);
+  text-align:center;
+}
+.ps-title    { font-family:'IM Fell English',serif; font-size:22px; color:#3b2a10; margin-bottom:4px; }
+.ps-subtitle { font-style:italic; font-size:13px; color:#7a5030; margin-bottom:18px; }
+
+.ps-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px; }
+
+.ps-card {
+  border:2px solid #c4a882; border-radius:10px; padding:12px 10px;
+  cursor:pointer; transition:all 0.15s; background:rgba(255,248,230,0.85);
+  position:relative; user-select:none;
+}
+.ps-card:hover { background:white; transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,0.15); }
+.ps-card.p1   { border-color:#c84060; box-shadow:0 0 0 3px rgba(200,64,96,0.35); background:#fff0f3; }
+.ps-card.p2   { border-color:#4060d0; box-shadow:0 0 0 3px rgba(64,96,208,0.35); background:#f0f3ff; }
+.ps-card.taken { opacity:0.45; cursor:not-allowed; }
+
+.ps-icon  { font-size:28px; margin-bottom:4px; }
+.ps-hname { font-family:'IM Fell English',serif; font-size:13px; color:#3b2a10; line-height:1.2; }
+.ps-rname { font-size:11px; color:#7a5030; font-style:italic; }
+
+.ps-badge {
+  position:absolute; top:-9px; right:-9px;
+  width:22px; height:22px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:10px; font-weight:700; color:white; border:2px solid white;
+}
+.ps-badge.p1 { background:#c84060; }
+.ps-badge.p2 { background:#4060d0; }
+
+.ps-hint { font-size:12px; color:#8b6340; font-style:italic; margin-bottom:14px; min-height:18px; }
+
+.ps-start {
+  width:100%; padding:11px; border-radius:30px;
+  border:2px solid #5a7a2e; background:#5a7a2e; color:#f0e8c0;
+  font-family:'IM Fell English',serif; font-size:16px; cursor:pointer;
+  transition:all 0.15s; opacity:0.4; pointer-events:none;
+}
+.ps-start.ready { opacity:1; pointer-events:auto; }
+.ps-start.ready:hover { background:#6a8a3e; transform:translateY(-1px); }
+
+/* ── GAME WRAPPER ── */
+.game-wrap { position:relative; z-index:1; min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:10px 10px 16px; margin-left:36vw; }
+
+/* ── HEADER ── */
+.header { background:rgba(42,62,20,0.88); backdrop-filter:blur(6px); border:2px solid rgba(200,168,100,0.6); border-radius:12px; padding:10px 20px; text-align:center; width:100%; max-width:620px; margin-bottom:8px; box-shadow:0 4px 20px rgba(0,0,0,0.4); transition:background 1.5s; }
+.header h1 { font-family:'IM Fell English',serif; font-size:clamp(14px,2vw,20px); color:#f0e8c0; text-shadow:1px 2px 6px rgba(0,0,0,0.5); letter-spacing:1px; }
+.header .subtitle { font-style:italic; color:#b8d090; font-size:12px; margin-top:2px; }
+
+/* ── CHARACTER BAR ── */
+.char-bar { display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin-bottom:8px; width:100%; max-width:620px; }
+
+.hobbit-card { background:rgba(245,234,208,0.88); border:2px solid #8b6340; border-radius:40px; padding:4px 10px 4px 6px; display:flex; align-items:center; gap:6px; cursor:pointer; transition:transform 0.15s, box-shadow 0.15s, border-color 0.2s, opacity 0.3s; box-shadow:0 2px 8px rgba(0,0,0,0.3); }
+.hobbit-card:hover { transform:translateY(-2px); }
+.hobbit-card.inactive { opacity:0.35; filter:grayscale(0.5); }
+
+@keyframes turnPulse {
+  0%,100% { box-shadow:0 0 0 3px rgba(240,200,32,0.5),0 4px 14px rgba(0,0,0,0.35); }
+  50%     { box-shadow:0 0 0 7px rgba(240,200,32,0.75),0 4px 22px rgba(0,0,0,0.4); }
+}
+.hobbit-card.current-turn { border-color:#f0c820; animation:turnPulse 1.4s ease-in-out infinite; }
+
+.hobbit-icon { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; border:2px solid #8b6340; }
+.card-jenny .hobbit-icon   { background:#c8e0a0; }
+.card-eric .hobbit-icon    { background:#d0c0a0; }
+.card-natalie .hobbit-icon { background:#f0c8d8; }
+.card-derek .hobbit-icon   { background:#b8d0f0; }
+
+.hobbit-names { line-height:1.15; }
+.hobbit-name { font-family:'IM Fell English',serif; font-size:12px; color:#3b2a10; }
+.hobbit-sub  { font-size:10px; color:#7a5030; font-style:italic; }
+
+.token-badge { font-size:11px; background:rgba(42,62,20,0.85); color:#f0e8c0; border:1px solid rgba(200,168,100,0.6); border-radius:12px; padding:2px 7px; white-space:nowrap; font-family:'Crimson Text',serif; transition:background 0.3s; }
+.token-badge.empty { background:rgba(120,40,20,0.85); color:#ffb0a0; }
+.token-badge.hot   { background:rgba(180,140,20,0.95); color:#3b2a10; font-weight:700; }
+
+/* ── MAIN LAYOUT ── */
+.main-area { display:flex; gap:8px; width:100%; max-width:620px; align-items:flex-start; flex:1; }
+
+.plots-container { flex:1; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+
+.plot-box { background:rgba(245,234,208,0.85); border:2px solid #8b6340; border-radius:10px; overflow:hidden; box-shadow:0 3px 12px rgba(0,0,0,0.35); transition:opacity 0.3s; }
+.plot-box.inactive { opacity:0.45; }
+
+.plot-header { padding:4px 8px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #c4a882; }
+.plot-header.jenny   { background:rgba(80,120,40,0.85); }
+.plot-header.eric    { background:rgba(100,80,40,0.85); }
+.plot-header.natalie { background:rgba(160,60,100,0.85); }
+.plot-header.derek   { background:rgba(40,80,140,0.85); }
+
+.plot-title { font-family:'IM Fell English',serif; font-size:12px; color:#f5ead0; line-height:1.2; flex:1; }
+.plot-sub   { font-size:10px; color:rgba(245,234,208,0.75); font-style:italic; }
+.plot-count { font-size:11px; color:rgba(245,234,208,0.9); background:rgba(0,0,0,0.2); padding:2px 6px; border-radius:10px; }
+
+.plot-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:3px; padding:5px; background:rgba(139,99,64,0.15); }
+
+.plot-cell { aspect-ratio:1; border-radius:3px; display:flex; align-items:center; justify-content:center; font-size:clamp(13px,1.6vw,18px); cursor:pointer; transition:background 0.12s, transform 0.1s; background:rgba(100,160,50,0.5); border:1px solid rgba(80,120,30,0.3); position:relative; user-select:none; }
+.plot-cell:hover { background:rgba(120,180,60,0.7); transform:scale(1.08); z-index:2; }
+.plot-cell.planted { background:rgba(90,140,40,0.6); }
+body.has-selection .plot-cell:not(.planted):hover { background:rgba(180,230,80,0.8); }
+
+@keyframes matchGlow {
+  0%   { background:rgba(255,220,40,0.95); transform:scale(1.2); box-shadow:0 0 10px rgba(255,200,0,0.8); }
+  50%  { background:rgba(255,180,20,0.85); transform:scale(1.1); }
+  100% { background:rgba(90,140,40,0.6); transform:scale(1); box-shadow:none; }
+}
+.plot-cell.matched { animation:matchGlow 0.9s ease-out forwards; z-index:3; }
+
+/* ── PALETTE ── */
+.palette { width:140px; flex-shrink:0; background:rgba(240,220,180,0.90); border:2px solid #8b6340; border-radius:10px; padding:8px 7px; box-shadow:0 3px 12px rgba(0,0,0,0.35); max-height:520px; overflow-y:auto; }
+.palette h3 { font-family:'IM Fell English',serif; font-size:14px; color:#3b2a10; text-align:center; border-bottom:1px solid #c4a882; padding-bottom:5px; margin-bottom:7px; }
+.pal-group { margin-bottom:9px; }
+.pal-group-label { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:#7a5030; font-weight:700; margin-bottom:3px; padding-left:2px; }
+.pal-item { display:flex; align-items:center; gap:5px; padding:3px 7px; border-radius:6px; border:1.5px solid #c4a882; background:rgba(255,248,230,0.8); margin-bottom:3px; cursor:pointer; font-size:11px; color:#3b2a10; transition:all 0.12s; user-select:none; }
+.pal-item:hover { background:rgba(255,255,255,0.95); transform:translateX(-2px); }
+.pal-item.selected { background:rgba(180,230,100,0.9); border-color:#4a7a20; box-shadow:0 0 0 2px rgba(74,122,32,0.4); transform:translateX(-2px); }
+.pal-emoji { font-size:17px; flex-shrink:0; }
+.pal-name  { flex:1; font-family:'Crimson Text',serif; font-size:11px; line-height:1.2; }
+.erase-btn { width:100%; margin-top:7px; padding:5px; border-radius:6px; border:1.5px solid #c4a882; background:rgba(255,220,200,0.8); cursor:pointer; font-family:'Crimson Text',serif; font-size:12px; color:#5a2010; transition:background 0.12s; }
+.erase-btn:hover,.erase-btn.selected { background:rgba(255,180,160,0.95); border-color:#a04030; }
+.gerald-hint { margin-top:9px; padding:6px; background:rgba(255,248,230,0.7); border:1px dashed #8b6340; border-radius:6px; font-size:10px; color:#7a5030; font-style:italic; text-align:center; line-height:1.4; }
+
+/* ── BOTTOM BAR ── */
+.bottom-bar { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; width:100%; max-width:620px; margin-top:8px; background:rgba(42,62,20,0.88); backdrop-filter:blur(4px); border:1px solid rgba(200,168,100,0.5); border-radius:10px; padding:7px 14px; box-shadow:0 3px 12px rgba(0,0,0,0.35); transition:background 1.5s; }
+.season { font-family:'IM Fell English',serif; font-size:13px; color:#c8e080; }
+.total-count { font-size:11px; color:rgba(245,234,208,0.85); font-style:italic; }
+.bar-btns { display:flex; gap:7px; }
+.bar-btn { padding:4px 14px; border-radius:20px; border:1.5px solid rgba(200,168,100,0.7); font-family:'Crimson Text',serif; font-size:12px; cursor:pointer; transition:all 0.15s; }
+.btn-clear   { background:rgba(245,234,208,0.2); color:#f0e8c0; }
+.btn-clear:hover { background:rgba(160,80,60,0.7); }
+.btn-change  { background:rgba(200,168,100,0.25); color:#f0e8c0; }
+.btn-change:hover { background:rgba(200,168,100,0.5); }
+
+/* ── GERALD ── */
+.gerald { position:fixed; bottom:80px; left:-80px; font-size:48px; z-index:100; pointer-events:none; display:none; filter:drop-shadow(2px 2px 4px rgba(0,0,0,0.4)); }
+.gerald.walk { display:block; animation:geraldWalk 8s linear forwards; }
+@keyframes geraldWalk { 0% { left:-80px; bottom:80px; } 30% { bottom:90px; } 60% { bottom:75px; } 100% { left:calc(100vw + 80px); bottom:80px; } }
+
+/* ── TOAST ── */
+.toast { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(0.8); background:rgba(42,62,20,0.96); color:#f0e8c0; border:2px solid rgba(200,168,100,0.8); border-radius:14px; padding:18px 28px; text-align:center; font-family:'IM Fell English',serif; font-size:17px; z-index:200; opacity:0; pointer-events:none; transition:all 0.3s; box-shadow:0 8px 32px rgba(0,0,0,0.6); max-width:80vw; line-height:1.5; }
+.toast.show { opacity:1; transform:translate(-50%,-50%) scale(1); pointer-events:auto; cursor:pointer; }
+.toast .toast-emoji { font-size:34px; display:block; margin-bottom:6px; }
+.toast .toast-sub { font-size:12px; font-family:'Crimson Text',serif; font-style:italic; color:#b8d090; margin-top:4px; }
+
+.sb-banner { position:fixed; top:-80px; left:0; right:0; text-align:center; background:rgba(160,80,20,0.96); color:#f0e8c0; font-family:'IM Fell English',serif; font-size:26px; padding:14px; z-index:150; letter-spacing:2px; border-bottom:3px solid #c8a040; box-shadow:0 4px 20px rgba(0,0,0,0.5); transition:top 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+.sb-banner.show { top:0; }
+
+@media (max-width:900px) { .game-wrap { margin-left:0; padding:8px; } .header,.char-bar,.main-area,.bottom-bar { max-width:100%; } }
+@media (max-width:680px) { .plots-container { grid-template-columns:1fr; } .main-area { flex-direction:column; } .palette { width:100%; max-height:none; } }
+</style>
+</head>
+<body>
+
+<!-- ── SVG BACKGROUND ── -->
+<svg class="bg-scene" id="bg-scene" viewBox="0 0 1400 800" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6ab0e0"/><stop offset="55%" stop-color="#a8cce8"/><stop offset="100%" stop-color="#c8dba8"/></linearGradient>
+    <linearGradient id="mainGround" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#5a9028"/><stop offset="100%" stop-color="#3a6010"/></linearGradient>
+    <linearGradient id="moundGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4e8a1e"/><stop offset="100%" stop-color="#2e5808"/></linearGradient>
+    <radialGradient id="sunGlow" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#fff8a0" stop-opacity="0.9"/><stop offset="100%" stop-color="#ffd040" stop-opacity="0"/></radialGradient>
+    <filter id="softBlur"><feGaussianBlur stdDeviation="2"/></filter>
+  </defs>
+  <rect width="1400" height="800" fill="url(#sky)"/>
+  <circle cx="980" cy="140" r="120" fill="url(#sunGlow)"/>
+  <circle cx="980" cy="140" r="45" fill="#fff5b0" opacity="0.95"/>
+  <g opacity="0.9" filter="url(#softBlur)"><ellipse cx="620" cy="110" rx="90" ry="32" fill="white"/><ellipse cx="680" cy="95" rx="70" ry="38" fill="white"/><ellipse cx="570" cy="105" rx="55" ry="28" fill="white"/></g>
+  <g opacity="0.8" filter="url(#softBlur)"><ellipse cx="1100" cy="150" rx="65" ry="24" fill="white"/><ellipse cx="1148" cy="138" rx="48" ry="30" fill="white"/></g>
+  <ellipse cx="1150" cy="560" rx="420" ry="220" fill="#6aaa30" opacity="0.45"/>
+  <ellipse cx="950" cy="590" rx="380" ry="200" fill="#78b838" opacity="0.35"/>
+  <path d="M500,500 Q650,440 800,470 Q950,500 1100,450 Q1250,400 1400,440 L1400,800 L500,800 Z" fill="#6aaa30" opacity="0.6"/>
+  <path d="M0,620 Q150,590 300,610 Q500,630 700,600 Q900,570 1100,585 Q1250,595 1400,570 L1400,800 L0,800 Z" fill="url(#mainGround)"/>
+  <ellipse cx="270" cy="660" rx="310" ry="240" fill="url(#moundGrad)"/>
+  <ellipse cx="265" cy="455" rx="255" ry="130" fill="#4a8820"/>
+  <ellipse cx="230" cy="430" rx="150" ry="60" fill="#5a9a28" opacity="0.5"/>
+  <rect x="342" y="355" width="32" height="80" rx="5" fill="#7a5535"/>
+  <rect x="336" y="350" width="44" height="12" rx="3" fill="#6a4525"/>
+  <path d="M358,348 Q346,325 360,300 Q374,275 362,250" stroke="#d0cec8" stroke-width="7" fill="none" stroke-linecap="round" opacity="0.55"/>
+  <path d="M366,345 Q354,320 367,292 Q380,264 369,238" stroke="#ddd" stroke-width="5" fill="none" stroke-linecap="round" opacity="0.4"/>
+  <circle cx="280" cy="592" r="82" fill="#5a3510"/>
+  <circle cx="280" cy="592" r="73" fill="#2a5a10"/>
+  <circle cx="280" cy="592" r="73" fill="none" stroke="#1a4008" stroke-width="4"/>
+  <line x1="280" y1="519" x2="280" y2="665" stroke="#1a4008" stroke-width="3.5"/>
+  <line x1="207" y1="575" x2="353" y2="575" stroke="#1a4008" stroke-width="2.5" opacity="0.6"/>
+  <line x1="210" y1="610" x2="350" y2="610" stroke="#1a4008" stroke-width="2.5" opacity="0.6"/>
+  <circle cx="296" cy="592" r="10" fill="none" stroke="#c8a030" stroke-width="3.5"/>
+  <circle cx="296" cy="603" r="3.5" fill="#c8a030"/>
+  <circle cx="264" cy="598" r="5.5" fill="#c8a030" stroke="#8b6010" stroke-width="1"/>
+  <circle cx="162" cy="528" r="38" fill="#7a5535" stroke="#5a3515" stroke-width="3"/>
+  <circle cx="162" cy="528" r="30" fill="#d0ecf8" opacity="0.55"/>
+  <line x1="162" y1="498" x2="162" y2="558" stroke="#7a5535" stroke-width="2.5" opacity="0.7"/>
+  <line x1="132" y1="528" x2="192" y2="528" stroke="#7a5535" stroke-width="2.5" opacity="0.7"/>
+  <rect x="140" y="560" width="44" height="11" rx="3" fill="#7a4525"/>
+  <g transform="translate(152,566)"><circle cx="0" cy="-4" r="2.5" fill="#f0a0c0"/><circle cx="3.8" cy="-1.2" r="2.5" fill="#f0a0c0"/><circle cx="2.4" cy="3.2" r="2.5" fill="#f0a0c0"/><circle cx="-2.4" cy="3.2" r="2.5" fill="#f0a0c0"/><circle cx="-3.8" cy="-1.2" r="2.5" fill="#f0a0c0"/><circle r="2" fill="#fffde0"/></g>
+  <g transform="translate(168,563)"><path d="M0,0 Q-4,-6 0,-10 Q4,-6 0,0" fill="#4a9030"/><path d="M0,-4 Q-5,-8 -2,-12 Q0,-7 0,-4" fill="#3a8020"/></g>
+  <circle cx="398" cy="524" r="38" fill="#7a5535" stroke="#5a3515" stroke-width="3"/>
+  <circle cx="398" cy="524" r="30" fill="#d0ecf8" opacity="0.55"/>
+  <line x1="398" y1="494" x2="398" y2="554" stroke="#7a5535" stroke-width="2.5" opacity="0.7"/>
+  <line x1="368" y1="524" x2="428" y2="524" stroke="#7a5535" stroke-width="2.5" opacity="0.7"/>
+  <rect x="376" y="556" width="44" height="11" rx="3" fill="#7a4525"/>
+  <g transform="translate(388,562)"><circle cx="-2" cy="2" r="4" fill="#b82040"/><circle cx="2" cy="2" r="4" fill="#c83050"/><circle cx="0" cy="-1" r="4" fill="#e04060"/><circle r="3" fill="#d03050"/></g>
+  <g transform="translate(404,560)"><line x1="0" y1="8" x2="0" y2="0" stroke="#2a7010" stroke-width="1.5"/><path d="M0,4 Q-4,0 -2,-3 Q0,1 0,4" fill="#3a8020"/><path d="M0,2 Q4,-2 3,-5 Q0,0 0,2" fill="#4a9030"/></g>
+  <circle cx="278" cy="468" r="24" fill="#7a5535" stroke="#5a3515" stroke-width="2.5"/>
+  <circle cx="278" cy="468" r="18" fill="#d0ecf8" opacity="0.55"/>
+  <ellipse cx="280" cy="708" rx="28" ry="12" fill="#a09080" opacity="0.7"/>
+  <ellipse cx="278" cy="730" rx="24" ry="11" fill="#988878" opacity="0.65"/>
+  <ellipse cx="282" cy="752" rx="26" ry="11" fill="#a09080" opacity="0.7"/>
+  <ellipse cx="279" cy="774" rx="23" ry="10" fill="#988878" opacity="0.65"/>
+  <g transform="translate(106,653)"><ellipse rx="4" ry="10" fill="#fffde0" transform="rotate(0)"/><ellipse rx="4" ry="10" fill="#fffde0" transform="rotate(45)"/><ellipse rx="4" ry="10" fill="#fffde0" transform="rotate(90)"/><ellipse rx="4" ry="10" fill="#fffde0" transform="rotate(135)"/><circle r="6" fill="#e8c020"/></g>
+  <g transform="translate(145,688)"><path d="M0,0 Q-8,-12 0,-20 Q8,-12 0,0" fill="#4a9030"/><path d="M0,-8 Q-10,-16 -4,-22 Q0,-14 0,-8" fill="#3a8020"/><line x1="0" y1="0" x2="0" y2="-20" stroke="#2a6010" stroke-width="1.5"/></g>
+  <g transform="translate(90,622)"><circle cx="0" cy="-8" r="5" fill="#f0a0c0"/><circle cx="7.6" cy="-2.5" r="5" fill="#f0a0c0"/><circle cx="4.7" cy="6.5" r="5" fill="#f0a0c0"/><circle cx="-4.7" cy="6.5" r="5" fill="#f0a0c0"/><circle cx="-7.6" cy="-2.5" r="5" fill="#f0a0c0"/><circle r="4" fill="#fff0f5"/><circle r="2" fill="#f0d020"/></g>
+  <g transform="translate(452,642)"><circle cx="-4" cy="3" r="8" fill="#b82040"/><circle cx="4" cy="3" r="8" fill="#c83050"/><circle cx="0" cy="-2" r="8" fill="#e04060"/><circle r="6" fill="#d03050"/><path d="M5,8 Q14,14 10,22 Q4,16 5,8" fill="#2a7010"/></g>
+  <g transform="translate(478,680)"><path d="M0,-14 Q-10,-14 -10,-4 Q-10,6 0,10 Q10,6 10,-4 Q10,-14 0,-14" fill="#d05080"/><path d="M0,-14 Q0,-22 4,-18 Q6,-10 0,-14" fill="#e06090"/><line x1="0" y1="10" x2="0" y2="22" stroke="#2a7010" stroke-width="2"/></g>
+  <g transform="translate(428,690)"><path d="M0,0 Q-8,-12 0,-20 Q8,-12 0,0" fill="#4a9030"/><path d="M0,-8 Q-10,-16 -4,-22 Q0,-14 0,-8" fill="#3a8020"/><line x1="0" y1="0" x2="0" y2="-20" stroke="#2a6010" stroke-width="1.5"/></g>
+  <g transform="translate(162,630)"><ellipse rx="3" ry="8" fill="#f0c020" transform="rotate(0)"/><ellipse rx="3" ry="8" fill="#f0c020" transform="rotate(30)"/><ellipse rx="3" ry="8" fill="#f0c020" transform="rotate(60)"/><ellipse rx="3" ry="8" fill="#f0c020" transform="rotate(90)"/><ellipse rx="3" ry="8" fill="#f0c020" transform="rotate(120)"/><ellipse rx="3" ry="8" fill="#f0c020" transform="rotate(150)"/><circle r="6" fill="#6b3820"/><circle r="4" fill="#5a2810"/></g>
+  <rect x="488" y="628" width="18" height="14" rx="3" fill="#8b6340" opacity="0.7"/>
+  <rect x="487" y="628" width="20" height="7" rx="2" fill="#7a5230" opacity="0.7"/>
+  <rect x="493" y="642" width="8" height="30" fill="#6a4220" opacity="0.7"/>
+  <path d="M600,620 Q700,580 850,600 Q1000,620 1150,585 Q1300,550 1400,570 L1400,800 L600,800 Z" fill="#5a9028" opacity="0.7"/>
+  <rect x="1210" y="500" width="22" height="130" rx="5" fill="#6b4226"/>
+  <ellipse cx="1221" cy="468" rx="68" ry="55" fill="#3a7018"/>
+  <ellipse cx="1185" cy="488" rx="44" ry="38" fill="#4a8020"/>
+  <ellipse cx="1255" cy="482" rx="48" ry="40" fill="#3d7018"/>
+  <ellipse cx="1340" cy="570" rx="48" ry="36" fill="#4a8020"/>
+  <g fill="#7a5535" opacity="0.7"><rect x="540" y="625" width="8" height="50" rx="2"/><rect x="600" y="620" width="8" height="52" rx="2"/><rect x="660" y="622" width="8" height="50" rx="2"/><rect x="720" y="618" width="8" height="52" rx="2"/><line x1="540" y1="640" x2="728" y2="635" stroke="#7a5535" stroke-width="3" opacity="0.6"/><line x1="540" y1="655" x2="728" y2="650" stroke="#7a5535" stroke-width="2.5" opacity="0.5"/></g>
+  <path d="M0,780 Q200,760 400,772 Q600,784 800,762 Q1000,742 1200,758 Q1300,765 1400,752 L1400,800 L0,800 Z" fill="#3a6810"/>
+</svg>
+
+<!-- ── PLAYER SELECT OVERLAY ── -->
+<div class="ps-overlay" id="ps-overlay">
+  <div class="ps-box">
+    <div class="ps-title">🌿 Who's Playing Today? 🌿</div>
+    <div class="ps-subtitle">"Choose your hobbits, then begin planting."</div>
+    <div class="ps-grid">
+      <div class="ps-card" id="ps-jenny" onclick="psToggle('jenny')">
+        <div class="ps-icon">🧙‍♀️</div>
+        <div class="ps-hname">Belladonna Goodbarrel</div>
+        <div class="ps-rname">Jenny · Head Gardener</div>
+      </div>
+      <div class="ps-card" id="ps-eric" onclick="psToggle('eric')">
+        <div class="ps-icon">⚔️</div>
+        <div class="ps-hname">Tobold Hornblower</div>
+        <div class="ps-rname">Eric · Pipeweed Farmer</div>
+      </div>
+      <div class="ps-card" id="ps-natalie" onclick="psToggle('natalie')">
+        <div class="ps-icon">🌸</div>
+        <div class="ps-hname">Peregrina Thistlewick</div>
+        <div class="ps-rname">Natalie · Flower Keeper</div>
+      </div>
+      <div class="ps-card" id="ps-derek" onclick="psToggle('derek')">
+        <div class="ps-icon">🍄</div>
+        <div class="ps-hname">Meriadoc Fairbottom</div>
+        <div class="ps-rname">Derek · Harvest Master</div>
+      </div>
+    </div>
+    <div class="ps-hint" id="ps-hint">Tap two hobbits to begin</div>
+    <button class="ps-start" id="ps-start" onclick="startGame()">🌿 Start Planting!</button>
+  </div>
+</div>
+
+<!-- ── GAME UI ── -->
+<div class="game-wrap">
+
+  <div class="header">
+    <h1>🌿 The Wakely Family Shire Garden 🌿</h1>
+    <div class="subtitle">"In a hole in the ground there lived a family who loved their garden."</div>
+  </div>
+
+  <div class="char-bar">
+    <div class="hobbit-card card-jenny" id="card-jenny" onclick="selectFamily('jenny')">
+      <div class="hobbit-icon">🧙‍♀️</div>
+      <div class="hobbit-names"><div class="hobbit-name">Belladonna</div><div class="hobbit-sub">Jenny</div></div>
+      <div class="token-badge" id="tokens-jenny">🪙 5</div>
+    </div>
+    <div class="hobbit-card card-eric" id="card-eric" onclick="selectFamily('eric')">
+      <div class="hobbit-icon">⚔️</div>
+      <div class="hobbit-names"><div class="hobbit-name">Tobold</div><div class="hobbit-sub">Eric</div></div>
+      <div class="token-badge" id="tokens-eric">🪙 5</div>
+    </div>
+    <div class="hobbit-card card-natalie" id="card-natalie" onclick="selectFamily('natalie')">
+      <div class="hobbit-icon">🌸</div>
+      <div class="hobbit-names"><div class="hobbit-name">Peregrina</div><div class="hobbit-sub">Natalie</div></div>
+      <div class="token-badge" id="tokens-natalie">🪙 5</div>
+    </div>
+    <div class="hobbit-card card-derek" id="card-derek" onclick="selectFamily('derek')">
+      <div class="hobbit-icon">🍄</div>
+      <div class="hobbit-names"><div class="hobbit-name">Meriadoc</div><div class="hobbit-sub">Derek</div></div>
+      <div class="token-badge" id="tokens-derek">🪙 5</div>
+    </div>
+  </div>
+
+  <div class="main-area">
+    <div class="plots-container">
+      <div class="plot-box" id="plot-jenny">
+        <div class="plot-header jenny"><div><div class="plot-title">🌿 Belladonna's Herb Garden</div><div class="plot-sub">Herbs, roses &amp; berries</div></div><div class="plot-count" id="count-jenny">0/18</div></div>
+        <div class="plot-grid" id="grid-jenny"></div>
+      </div>
+      <div class="plot-box" id="plot-eric">
+        <div class="plot-header eric"><div><div class="plot-title">🌱 Tobold's Pipeweed Patch</div><div class="plot-sub">Hearty crops &amp; the finest weed</div></div><div class="plot-count" id="count-eric">0/18</div></div>
+        <div class="plot-grid" id="grid-eric"></div>
+      </div>
+      <div class="plot-box" id="plot-natalie">
+        <div class="plot-header natalie"><div><div class="plot-title">🌸 Peregrina's Flower Corner</div><div class="plot-sub">Elvish blooms &amp; wildflowers</div></div><div class="plot-count" id="count-natalie">0/18</div></div>
+        <div class="plot-grid" id="grid-natalie"></div>
+      </div>
+      <div class="plot-box" id="plot-derek">
+        <div class="plot-header derek"><div><div class="plot-title">🥔 Meriadoc's Second Breakfast</div><div class="plot-sub">Boil 'em, mash 'em, plant 'em</div></div><div class="plot-count" id="count-derek">0/18</div></div>
+        <div class="plot-grid" id="grid-derek"></div>
+      </div>
+    </div>
+
+    <div class="palette">
+      <h3>🌱 Plants</h3>
+      <div class="pal-group">
+        <div class="pal-group-label">Jenny's</div>
+        <div class="pal-item" onclick="selectPlant('🌿','Old Toby Herb')"><span class="pal-emoji">🌿</span><span class="pal-name">Old Toby Herb</span></div>
+        <div class="pal-item" onclick="selectPlant('🍇','Shire Berries')"><span class="pal-emoji">🍇</span><span class="pal-name">Shire Berries</span></div>
+        <div class="pal-item" onclick="selectPlant('🌹','Bag End Rose')"><span class="pal-emoji">🌹</span><span class="pal-name">Bag End Rose</span></div>
+        <div class="pal-item" onclick="selectPlant('🍀','Athelas')"><span class="pal-emoji">🍀</span><span class="pal-name">Athelas</span></div>
+      </div>
+      <div class="pal-group">
+        <div class="pal-group-label">Eric's</div>
+        <div class="pal-item" onclick="selectPlant('🌾','Wheat')"><span class="pal-emoji">🌾</span><span class="pal-name">Wheat</span></div>
+        <div class="pal-item" onclick="selectPlant('🧅','Shire Onion')"><span class="pal-emoji">🧅</span><span class="pal-name">Shire Onion</span></div>
+        <div class="pal-item" onclick="selectPlant('🌽','Hobbit Corn')"><span class="pal-emoji">🌽</span><span class="pal-name">Hobbit Corn</span></div>
+        <div class="pal-item" onclick="selectPlant('🌱','Pipeweed')"><span class="pal-emoji">🌱</span><span class="pal-name">Pipeweed</span></div>
+      </div>
+      <div class="pal-group">
+        <div class="pal-group-label">Natalie's</div>
+        <div class="pal-item" onclick="selectPlant('🌻','Sunflower')"><span class="pal-emoji">🌻</span><span class="pal-name">Sunflower</span></div>
+        <div class="pal-item" onclick="selectPlant('🌸','Elvish Blossom')"><span class="pal-emoji">🌸</span><span class="pal-name">Elvish Blossom</span></div>
+        <div class="pal-item" onclick="selectPlant('🌼','Daisy')"><span class="pal-emoji">🌼</span><span class="pal-name">Daisy</span></div>
+        <div class="pal-item" onclick="selectPlant('🌺','Pippin\'s Poppy')"><span class="pal-emoji">🌺</span><span class="pal-name">Pippin's Poppy</span></div>
+        <div class="pal-item" onclick="selectPlant('🍄','Bilbo\'s Mushrooms')"><span class="pal-emoji">🍄</span><span class="pal-name">Bilbo's Mushrooms</span></div>
+      </div>
+      <div class="pal-group">
+        <div class="pal-group-label">Derek's</div>
+        <div class="pal-item" onclick="selectPlant('🥔','Taters')"><span class="pal-emoji">🥔</span><span class="pal-name">Taters</span></div>
+        <div class="pal-item" onclick="selectPlant('🥕','Hobbit Carrots')"><span class="pal-emoji">🥕</span><span class="pal-name">Hobbit Carrots</span></div>
+        <div class="pal-item" onclick="selectPlant('🥒','Green Peas')"><span class="pal-emoji">🥒</span><span class="pal-name">Green Peas</span></div>
+      </div>
+      <div class="pal-group">
+        <div class="pal-group-label">Shared</div>
+        <div class="pal-item" onclick="selectPlant('🌷','Tulip')"><span class="pal-emoji">🌷</span><span class="pal-name">Tulip</span></div>
+        <div class="pal-item" onclick="selectPlant('🌲','Shire Oak')"><span class="pal-emoji">🌲</span><span class="pal-name">Shire Oak</span></div>
+      </div>
+      <button class="erase-btn" id="erase-btn" onclick="selectErase()">🗑 Erase Mode</button>
+      <div class="gerald-hint">🐢 Plant 3 mushrooms to find Gerald…</div>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <div class="season" id="season-label">☀️ Season: Summer</div>
+    <div class="total-count" id="total-count">0 of 72 planted</div>
+    <div class="bar-btns">
+      <button class="bar-btn btn-change" onclick="changePlayersConfirm()">👥 Change Players</button>
+      <button class="bar-btn btn-clear"  onclick="confirmClear()">🌱 Clear All</button>
+    </div>
+  </div>
+</div>
+
+<div class="gerald" id="gerald">🐢</div>
+<div class="toast" id="toast"><span class="toast-emoji" id="toast-emoji">🎉</span><span id="toast-msg"></span><div class="toast-sub" id="toast-sub"></div></div>
+<div class="sb-banner" id="sb-banner">🍳 SECOND BREAKFAST TIME! 🥞🥚🍞🧈</div>
+
+<script>
+// ── CONSTANTS ──
+const PLOTS      = ['jenny','eric','natalie','derek'];
+const CELLS      = 18;
+const COLS       = 6;
+const ROWS       = 3;
+const TOKEN_MAX  = 5;
+
+const HOBBIT_NAMES = { jenny:'Belladonna', eric:'Tobold', natalie:'Peregrina', derek:'Meriadoc' };
+const PLAYER_NAMES = { jenny:'Jenny',      eric:'Eric',   natalie:'Natalie',   derek:'Derek'    };
+
+const SEASONS = [
+  { name:'Spring', emoji:'🌸', filter:'hue-rotate(22deg) saturate(1.3) brightness(1.05)' },
+  { name:'Summer', emoji:'☀️', filter:''                                                  },
+  { name:'Autumn', emoji:'🍂', filter:'sepia(0.38) saturate(1.6) hue-rotate(-18deg)'      },
+  { name:'Winter', emoji:'❄️', filter:'grayscale(0.38) brightness(1.15) saturate(0.5)'    },
+];
+
+// ── STATE ──
+let garden        = { jenny:ng(), eric:ng(), natalie:ng(), derek:ng() };
+let tokens        = { jenny:TOKEN_MAX, eric:TOKEN_MAX, natalie:TOKEN_MAX, derek:TOKEN_MAX };
+let currentSeason = 1;
+let activePlayers = [];  // 2 selected characters
+let turnIdx       = 0;   // index into activePlayers
+let seasonCooldown = false;
+
+let selectedPlantEmoji = null;
+let eraseMode = false;
+let geraldTriggered = false;
+let sbClickCount = 0, sbTriggered = false;
+let plotFullAlerted = {};
+
+// ── PLAYER SELECT STATE ──
+let psSelected = []; // temp during selection screen
+
+function ng()          { return new Array(CELLS).fill(null); }
+function currentTurn() { return activePlayers[turnIdx % activePlayers.length]; }
+
+// ── INIT ──
+document.addEventListener('DOMContentLoaded', () => {
+  PLOTS.forEach(buildGrid);
+  loadState();
+
+  if (activePlayers.length === 2) {
+    hidePsOverlay();
+    renderAll();
+    applySeason(false);
+    renderTurnIndicator();
+  } else {
+    showPsOverlay();
+    renderAll();
+    applySeason(false);
+  }
+
+  document.addEventListener('click', e => {
+    const rx = e.clientX / window.innerWidth;
+    const ry = e.clientY / window.innerHeight;
+    if (rx > 0.15 && rx < 0.28 && ry > 0.55 && ry < 0.88) {
+      sbClickCount++;
+      if (sbClickCount >= 3 && !sbTriggered) {
+        sbTriggered = true; triggerSecondBreakfast();
+        setTimeout(() => { sbTriggered = false; sbClickCount = 0; }, 10000);
+      }
+    }
+  });
+});
+
+// ── PLAYER SELECT ──
+function showPsOverlay() {
+  psSelected = [];
+  renderPsCards();
+  document.getElementById('ps-overlay').style.display = 'flex';
+}
+
+function hidePsOverlay() {
+  document.getElementById('ps-overlay').style.display = 'none';
+}
+
+function psToggle(who) {
+  if (psSelected.includes(who)) {
+    psSelected = psSelected.filter(p => p !== who);
+  } else if (psSelected.length < 2) {
+    psSelected.push(who);
+  } else {
+    // Replace second pick
+    psSelected[1] = who;
+  }
+  renderPsCards();
+}
+
+function renderPsCards() {
+  PLOTS.forEach(p => {
+    const card = document.getElementById('ps-' + p);
+    if (!card) return;
+    card.className = 'ps-card';
+    // Remove old badge
+    const old = card.querySelector('.ps-badge');
+    if (old) old.remove();
+
+    const idx = psSelected.indexOf(p);
+    if (idx === 0) {
+      card.classList.add('p1');
+      const b = document.createElement('div');
+      b.className = 'ps-badge p1'; b.textContent = 'P1';
+      card.appendChild(b);
+    } else if (idx === 1) {
+      card.classList.add('p2');
+      const b = document.createElement('div');
+      b.className = 'ps-badge p2'; b.textContent = 'P2';
+      card.appendChild(b);
+    } else if (psSelected.length === 2) {
+      card.classList.add('taken');
+    }
+  });
+
+  const hint = document.getElementById('ps-hint');
+  const btn  = document.getElementById('ps-start');
+  if (psSelected.length === 0) hint.textContent = 'Tap two hobbits to begin';
+  if (psSelected.length === 1) hint.textContent = HOBBIT_NAMES[psSelected[0]] + ' is ready — pick one more!';
+  if (psSelected.length === 2) hint.textContent = HOBBIT_NAMES[psSelected[0]] + ' & ' + HOBBIT_NAMES[psSelected[1]] + ' — let\'s plant!';
+  btn.classList.toggle('ready', psSelected.length === 2);
+}
+
+function startGame() {
+  if (psSelected.length !== 2) return;
+  activePlayers = [...psSelected];
+  turnIdx = 0;
+  // Give tokens only to active players; freeze others
+  PLOTS.forEach(p => { tokens[p] = activePlayers.includes(p) ? TOKEN_MAX : 0; });
+  hidePsOverlay();
+  renderAll();
+  renderTurnIndicator();
+  saveState();
+  const s = SEASONS[currentSeason];
+  showToast(s.emoji, HOBBIT_NAMES[activePlayers[0]] + ' plants first!', PLAYER_NAMES[activePlayers[0]] + ' — select a plant and choose your plot.');
+}
+
+function changePlayersConfirm() {
+  if (confirm('Change players? Tokens reset but the garden stays. Continue?')) {
+    activePlayers = [];
+    turnIdx = 0;
+    seasonCooldown = false;
+    PLOTS.forEach(p => { tokens[p] = TOKEN_MAX; });
+    saveState();
+    showPsOverlay();
+  }
+}
+
+// ── BUILD GRID ──
+function buildGrid(p) {
+  const g = document.getElementById('grid-' + p);
+  g.innerHTML = '';
+  for (let i = 0; i < CELLS; i++) {
+    const c = document.createElement('div');
+    c.className = 'plot-cell';
+    c.dataset.plot = p; c.dataset.idx = i;
+    c.addEventListener('click', onCellClick);
+    g.appendChild(c);
+  }
+}
+
+// ── RENDER ──
+function renderAll() { PLOTS.forEach(renderPlot); updateTotalCount(); renderTokens(); renderInactive(); }
+
+function renderPlot(p) {
+  const cells = document.getElementById('grid-' + p).querySelectorAll('.plot-cell');
+  let n = 0;
+  cells.forEach((c, i) => {
+    c.textContent = garden[p][i] || '';
+    c.classList.toggle('planted', !!garden[p][i]);
+    if (garden[p][i]) n++;
+  });
+  document.getElementById('count-' + p).textContent = n + '/' + CELLS;
+}
+
+function updateTotalCount() {
+  const t = PLOTS.reduce((s,p) => s + garden[p].filter(Boolean).length, 0);
+  document.getElementById('total-count').textContent = t + ' of 72 planted';
+}
+
+function renderTokens() {
+  PLOTS.forEach(p => {
+    const el = document.getElementById('tokens-' + p);
+    if (!el) return;
+    if (!activePlayers.includes(p)) { el.textContent = '🔒'; el.className = 'token-badge empty'; return; }
+    const t = tokens[p];
+    el.textContent = '🪙 ' + t;
+    el.className = 'token-badge' + (t === 0 ? ' empty' : '');
+  });
+}
+
+function renderInactive() {
+  PLOTS.forEach(p => {
+    const box  = document.getElementById('plot-' + p);
+    const card = document.getElementById('card-' + p);
+    const inactive = activePlayers.length > 0 && !activePlayers.includes(p);
+    if (box)  box.classList.toggle('inactive', inactive);
+    if (card) card.classList.toggle('inactive', inactive);
+  });
+}
+
+function renderTurnIndicator() {
+  if (!activePlayers.length) return;
+  const who = currentTurn();
+  PLOTS.forEach(p => {
+    const card = document.getElementById('card-' + p);
+    if (!card) return;
+    card.classList.toggle('current-turn', p === who);
+  });
+  const badge = document.getElementById('tokens-' + who);
+  if (badge) badge.classList.add('hot');
+  const other = activePlayers.find(p => p !== who);
+  if (other) { const ob = document.getElementById('tokens-' + other); if (ob) ob.classList.remove('hot'); }
+  document.getElementById('plot-' + who).scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+// ── SELECTION ──
+function selectPlant(emoji) {
+  selectedPlantEmoji = emoji;
+  eraseMode = false;
+  document.querySelectorAll('.pal-item').forEach(el => {
+    el.classList.toggle('selected', el.querySelector('.pal-emoji').textContent === emoji);
+  });
+  document.getElementById('erase-btn').classList.remove('selected');
+  document.body.classList.add('has-selection');
+}
+
+function selectErase() {
+  eraseMode = true; selectedPlantEmoji = null;
+  document.querySelectorAll('.pal-item').forEach(el => el.classList.remove('selected'));
+  document.getElementById('erase-btn').classList.add('selected');
+  document.body.classList.add('has-selection');
+}
+
+function selectFamily(who) {
+  document.getElementById('plot-' + who).scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+// ── CELL CLICK ──
+function onCellClick(e) {
+  if (!activePlayers.length) return;
+  const plotId = e.currentTarget.dataset.plot;
+  const idx    = parseInt(e.currentTarget.dataset.idx);
+
+  // Erase always allowed
+  if (eraseMode || (!selectedPlantEmoji && garden[plotId][idx])) {
+    garden[plotId][idx] = null;
+    renderPlot(plotId); updateTotalCount(); saveState();
+    return;
+  }
+  if (!selectedPlantEmoji) return;
+
+  const who = currentTurn();
+
+  // Must plant in own plot
+  if (plotId !== who) {
+    showToast('👉', "Plant in your own plot!", "It's " + PLAYER_NAMES[who] + "'s turn — tap a cell in " + HOBBIT_NAMES[who] + "'s garden.");
+    return;
+  }
+
+  if (tokens[who] <= 0) {
+    showToast('🌿', 'No tokens left!', 'Waiting for a match-3 to advance the season and refill everyone.');
+    return;
+  }
+
+  garden[plotId][idx] = selectedPlantEmoji;
+  tokens[who]--;
+  renderPlot(plotId); updateTotalCount(); renderTokens(); saveState();
+
+  const matched = checkMatch3(plotId);
+  if (!matched) advanceTurn();
+  checkEasterEggs(plotId);
+}
+
+// ── TURN ──
+function advanceTurn() {
+  turnIdx = (turnIdx + 1) % activePlayers.length;
+
+  // If next player also has 0 tokens, check if both are empty
+  if (tokens[currentTurn()] === 0) {
+    const allEmpty = activePlayers.every(p => tokens[p] === 0);
+    if (allEmpty) {
+      setTimeout(() => {
+        showToast('🍂', 'All tokens spent — the season fades…', 'A new season begins with fresh tokens for everyone.');
+        setTimeout(() => advanceSeason(false), 1600);
+      }, 500);
+      return;
+    }
+    // Skip this player, try next
+    advanceTurn(); return;
+  }
+
+  renderTurnIndicator(); renderTokens();
+}
+
+// ── MATCH-3 ──
+function checkMatch3(plotId) {
+  if (seasonCooldown) return false;
+  const matches = getMatches(garden[plotId]);
+  if (!matches.length) return false;
+
+  const cells = document.getElementById('grid-' + plotId).querySelectorAll('.plot-cell');
+  new Set(matches.flat()).forEach(i => {
+    cells[i].classList.add('matched');
+    setTimeout(() => cells[i].classList.remove('matched'), 950);
+  });
+
+  showToast('🌟', HOBBIT_NAMES[plotId] + ' scores a match!', 'Season advancing — everyone gets ' + TOKEN_MAX + ' fresh tokens!');
+  setTimeout(() => advanceSeason(true), 1300);
+  return true;
+}
+
+function getMatches(cells) {
+  const m = [];
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c <= COLS-3; c++) {
+      const i = r*COLS+c;
+      if (cells[i] && cells[i]===cells[i+1] && cells[i]===cells[i+2]) m.push([i,i+1,i+2]);
+    }
+  for (let c = 0; c < COLS; c++)
+    if (cells[c] && cells[c]===cells[c+COLS] && cells[c]===cells[c+COLS*2]) m.push([c,c+COLS,c+COLS*2]);
+  for (let c = 0; c <= COLS-3; c++) {
+    if (cells[c] && cells[c]===cells[c+COLS+1] && cells[c]===cells[c+COLS*2+2]) m.push([c,c+COLS+1,c+COLS*2+2]);
+  }
+  for (let c = 2; c < COLS; c++) {
+    if (cells[c] && cells[c]===cells[c+COLS-1] && cells[c]===cells[c+COLS*2-2]) m.push([c,c+COLS-1,c+COLS*2-2]);
+  }
+  return m;
+}
+
+// ── SEASON ──
+function advanceSeason(matched) {
+  seasonCooldown = true;
+  currentSeason = (currentSeason + 1) % 4;
+  activePlayers.forEach(p => { tokens[p] = TOKEN_MAX; });
+  turnIdx = 0;
+  applySeason(true); renderTokens(); renderTurnIndicator(); saveState();
+
+  const s = SEASONS[currentSeason];
+  showToast(s.emoji, s.name + ' has arrived!',
+    'Everyone gets ' + TOKEN_MAX + ' fresh tokens. ' + PLAYER_NAMES[currentTurn()] + ' goes first!');
+
+  setTimeout(() => { seasonCooldown = false; }, 8000);
+
+  let sty = parseInt(localStorage.getItem('shireSeasonsThisYear') || '0') + 1;
+  let yrs = parseInt(localStorage.getItem('shireYears') || '0');
+  if (sty >= 4) {
+    sty = 0; yrs++;
+    localStorage.setItem('shireYears', yrs);
+    setTimeout(() => showToast('🎆', 'A full year in the Shire! (Year ' + yrs + ')',
+      'The garden has bloomed through all four seasons. Well done, hobbits!'), 6000);
+  }
+  localStorage.setItem('shireSeasonsThisYear', sty);
+}
+
+function applySeason(animate) {
+  const s = SEASONS[currentSeason];
+  const label = document.getElementById('season-label');
+  if (label) label.textContent = s.emoji + ' Season: ' + s.name;
+  const bg = document.getElementById('bg-scene');
+  if (bg) {
+    if (animate) bg.style.transition = 'filter 2.5s ease';
+    bg.style.filter = s.filter;
+    if (animate) setTimeout(() => { bg.style.transition = ''; }, 2600);
+  }
+  for (let i = 0; i < 4; i++) document.body.classList.remove('season-' + i);
+  document.body.classList.add('season-' + currentSeason);
+}
+
+// ── EASTER EGGS ──
+function checkEasterEggs(plotId) {
+  if (!geraldTriggered) {
+    const n = PLOTS.reduce((s,p) => s + garden[p].filter(v=>v==='🍄').length, 0);
+    if (n >= 3) { geraldTriggered = true; triggerGerald(); }
+  }
+  if (garden[plotId].filter(Boolean).length === CELLS && !plotFullAlerted[plotId]) {
+    plotFullAlerted[plotId] = true;
+    showToast('🌟', HOBBIT_NAMES[plotId] + "'s plot is in full bloom!", '"A wizard is never late, and a garden is never too full."');
+  }
+}
+
+function triggerGerald() {
+  const g = document.getElementById('gerald');
+  g.classList.add('walk');
+  showToast('🐢', 'Gerald appears!', '"A turtle is always on time — he simply has places to be."');
+  g.addEventListener('animationend', () => { g.classList.remove('walk'); setTimeout(()=>{geraldTriggered=false;},30000); }, {once:true});
+}
+
+function triggerSecondBreakfast() {
+  const b = document.getElementById('sb-banner');
+  b.classList.add('show');
+  setTimeout(() => b.classList.remove('show'), 3500);
+}
+
+// ── TOAST ──
+let toastTimer = null;
+function showToast(emoji, msg, sub) {
+  document.getElementById('toast-emoji').textContent = emoji;
+  document.getElementById('toast-msg').textContent   = msg;
+  document.getElementById('toast-sub').textContent   = sub || '';
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 5000);
+}
+document.addEventListener('click', e => { if (e.target.closest('.toast')) document.getElementById('toast').classList.remove('show'); });
+
+// ── SAVE / LOAD ──
+function saveState() {
+  try { localStorage.setItem('shireGarden_v5', JSON.stringify({ garden, tokens, currentSeason, activePlayers, turnIdx })); } catch(e) {}
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem('shireGarden_v5');
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (s.garden)        PLOTS.forEach(p => { if (s.garden[p]?.length === CELLS) garden[p] = s.garden[p]; });
+    if (s.tokens)        PLOTS.forEach(p => { if (typeof s.tokens[p]==='number') tokens[p] = s.tokens[p]; });
+    if (typeof s.currentSeason==='number') currentSeason = s.currentSeason;
+    if (Array.isArray(s.activePlayers) && s.activePlayers.length===2) activePlayers = s.activePlayers;
+    if (typeof s.turnIdx==='number') turnIdx = s.turnIdx;
+  } catch(e) {}
+}
+
+function confirmClear() {
+  if (!confirm('Clear the entire garden and start fresh? Cannot be undone.')) return;
+  PLOTS.forEach(p => { garden[p] = ng(); tokens[p] = TOKEN_MAX; });
+  currentSeason = 1; turnIdx = 0; plotFullAlerted = {};
+  geraldTriggered = false; seasonCooldown = false; activePlayers = [];
+  ['shireYears','shireSeasonsThisYear'].forEach(k => localStorage.removeItem(k));
+  saveState(); renderAll(); applySeason(false);
+  showPsOverlay();
+}
+
+// ── KEYBOARD ──
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    selectedPlantEmoji = null; eraseMode = false;
+    document.querySelectorAll('.pal-item').forEach(el => el.classList.remove('selected'));
+    document.getElementById('erase-btn').classList.remove('selected');
+    document.body.classList.remove('has-selection');
+  }
+});
+</script>
+</body>
+</html>
