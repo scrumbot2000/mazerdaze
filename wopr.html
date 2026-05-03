@@ -188,9 +188,43 @@
     opacity: 0.5; transition: opacity 0.2s;
   }
   #mute-btn:hover { opacity: 1; }
+
+  /* ── NEDRY OVERLAY ── */
+  #nedry-overlay {
+    display: none;
+    position: fixed; top:0; left:0; width:100%; height:100%;
+    background: rgba(0,0,0,0.92);
+    z-index: 200;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s ease;
+  }
+  #nedry-overlay.show { display: flex; }
+  #nedry-img {
+    width: min(340px, 70vw);
+    image-rendering: pixelated;
+    border: 2px solid #33ff33;
+    box-shadow: 0 0 30px #33ff33, 0 0 60px #1a881a;
+  }
+  #nedry-text {
+    margin-top: 24px;
+    font-family: 'Courier New', monospace;
+    font-size: clamp(18px, 4vw, 32px);
+    font-weight: bold;
+    color: #33ff33;
+    text-shadow: 0 0 16px #33ff33;
+    letter-spacing: 0.08em;
+    text-align: center;
+    animation: blink 0.4s step-end infinite;
+  }
 </style>
 </head>
 <body>
+<div id="nedry-overlay">
+  <img id="nedry-img" src="/nedry.jpg" alt="" />
+  <div id="nedry-text">UH UH UH! YOU DIDN'T SAY THE MAGIC WORD!</div>
+</div>
 <div id="crt">
   <div id="header">W O P R  ///  W A R  O P E R A T I O N  P L A N  R E S P O N S E  ///  C L A S S I F I E D</div>
   <div id="output"></div>
@@ -667,6 +701,13 @@
       if (rem > 0) {
         await typeText(rem + ' ATTEMPT' + (rem > 1 ? 'S' : '') + ' REMAINING.', 25);
         await blankLine();
+      } else {
+        // 3rd failure — Nedry
+        const overlay = document.getElementById('nedry-overlay');
+        overlay.classList.add('show');
+        await delay(3200);
+        overlay.classList.remove('show');
+        await delay(200);
       }
     }
     await blankLine();
