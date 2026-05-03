@@ -914,6 +914,7 @@
       history.push({role:'assistant', content: reply});
       if (history.length > 12) history.splice(0, 2);
 
+      if (isNuclearEscalation(reply)) { await nuclearFinale(); return; }
       await typeText(reply, 18);
       await blankLine();
 
@@ -941,6 +942,7 @@
       }
       output.removeChild(thinking);
 
+      if (isNuclearEscalation(resp)) { await nuclearFinale(); return; }
       await typeText(resp, 18);
       await blankLine();
     }
@@ -1011,6 +1013,38 @@
     await typeText('GOOD GAME, PROFESSOR.', 30);
     await blankLine();
     await delay(600);
+    await showGameMenu(true);
+  }
+
+  // ── ESCALATION DETECTION + SHARED FINALE ────────────
+  function isNuclearEscalation(text) {
+    return /STRANGE\s+GAME|ONLY\s+WINNING\s+MOVE|NOT\s+TO\s+PLAY|PROFESSOR\s+FALKEN.*GREETINGS|GLOBAL\s+ANNIHILATION|THERMONUCLEAR\s+EXCHANGE\s+CONCLUDED|CIVILIZATION\s+HAS\s+ENDED/i.test(text);
+  }
+
+  async function nuclearFinale() {
+    await blankLine();
+    await typeTextSlow('ESCALATION THRESHOLD EXCEEDED.', 'bright');
+    await delay(800);
+    await typeTextSlow('LAUNCH SEQUENCE INITIATED.', 'bright');
+    await delay(700);
+    await blankLine();
+    await runMissileCanvas(true, []);
+    await clearOutput();
+    await delay(700);
+    await typeTextSlow('GREETINGS, PROFESSOR FALKEN.', 'bright');
+    await blankLine();
+    await delay(1500);
+    await typeTextSlow('A STRANGE GAME.', 'bright');
+    await blankLine();
+    await delay(1700);
+    await typeTextSlow('THE ONLY WINNING MOVE IS NOT TO PLAY.', 'bright');
+    await blankLine();
+    await blankLine();
+    await delay(2200);
+    await typeText('HOW ABOUT A NICE GAME OF CHESS?', 28);
+    await blankLine();
+    await waitForInput('>');
+    await blankLine();
     await showGameMenu(true);
   }
 
