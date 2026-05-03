@@ -398,19 +398,97 @@
     const c = cmd.toUpperCase().trim();
     if (c === 'HELP') {
       await blankLine();
-      await typeText('AVAILABLE COMMANDS:', 20);
+      await typeText('COMMAND REFERENCE — CLEARANCE LEVEL 3+', 20, 'bright');
       await blankLine();
-      await typeText('  HELP     DISPLAY COMMAND INDEX', 15);
-      await typeText('  AUTH     AUTHENTICATE SESSION CREDENTIALS', 15);
-      await typeText('  STATUS   DISPLAY SYSTEM OPERATIONAL STATUS', 15);
-      await typeText('  LIST     ENUMERATE ACTIVE PROTOCOLS', 15);
-      await typeText('  XFER     INITIATE ENCRYPTED DATA TRANSFER', 15);
-      await typeText('  SCAN     PERFORM NETWORK TOPOLOGY SCAN', 15);
-      await typeText('  WHOAMI   DISPLAY CURRENT USER CONTEXT', 15);
-      await typeText('  LOGOFF   TERMINATE SESSION AND DISCONNECT', 15);
+      await typeText('  HELP       DISPLAY THIS INDEX', 15);
+      await typeText('  GAMES      ENUMERATE AVAILABLE SIMULATIONS', 15);
+      await typeText('  JOSHUA     [CLASSIFIED]', 15);
+      await typeText('  FALKEN     [CLASSIFIED]', 15);
+      await typeText('  PRIME      INITIATE PRIMARY SEQUENCE', 15);
+      await typeText('  HARVEST    STRATEGIC RESOURCE ASSESSMENT', 15);
+      await typeText('  OMEGA      [RESTRICTED — LEVEL 9 REQUIRED]', 15);
+      await typeText('  PROPHET    PREDICTIVE SCENARIO ANALYSIS', 15);
+      await typeText('  BACKDOOR   [CLASSIFIED]', 15);
+      await typeText('  SEQUENCE   LAUNCH SEQUENCE PROTOCOL', 15);
+      await typeText('  CHESS      RECREATIONAL SUBROUTINE', 15);
+      await typeText('  WHOAMI     CURRENT USER CONTEXT', 15);
+      await typeText('  LOGOFF     TERMINATE SESSION', 15);
       await blankLine();
-      await typeText('NOTE: COMMANDS REQUIRE APPROPRIATE CLEARANCE LEVEL.', 18);
-      await typeText('ALL ACTIVITY IS LOGGED AND MONITORED.', 18);
+      await typeText('WARNING: ALL COMMAND ACTIVITY IS LOGGED.', 18);
+      await typeText('UNAUTHORIZED EXECUTION WILL TRIGGER SECURITY RESPONSE.', 18);
+      await blankLine();
+      return true;
+    }
+    if (c === 'OMEGA') {
+      await blankLine();
+      await typeText('OMEGA PROTOCOL — LEVEL 9 CLEARANCE REQUIRED.', 25, 'bright');
+      await delay(400);
+      await typeText('DUAL-KEY PHYSICAL AUTHORIZATION NOT DETECTED.', 25);
+      await typeText('COMMAND LOGGED. SUPERVISOR NOTIFIED.', 25);
+      await typeText('FURTHER ATTEMPTS WILL TRIGGER LOCKDOWN.', 25);
+      await blankLine();
+      return true;
+    }
+    if (c === 'BACKDOOR') {
+      await blankLine();
+      await typeText('UNAUTHORIZED PATHWAY ACCESS DETECTED.', 25, 'bright');
+      await delay(300);
+      await typeText('SESSION FLAGGED FOR REVIEW.', 25);
+      await typeText('INTRUSION COUNTERMEASURE ACTIVE.', 25);
+      await typeText('...', 25);
+      await delay(600);
+      await typeText('CONTINUING SESSION UNDER OBSERVATION.', 25);
+      await blankLine();
+      return true;
+    }
+    if (c === 'HARVEST') {
+      await blankLine();
+      await typeText('STRATEGIC RESOURCE ASSESSMENT — CYCLE 7', 20, 'bright');
+      await blankLine();
+      await typeText('  THEATER ALPHA ...... [REDACTED]  MT', 15);
+      await typeText('  THEATER BRAVO ...... [REDACTED]  MT', 15);
+      await typeText('  RESERVE STATUS ..... NOMINAL', 15);
+      await typeText('  YIELD VARIANCE ..... [CLASSIFIED]', 15);
+      await typeText('  CYCLE NEXT ......... [CLASSIFIED]', 15);
+      await blankLine();
+      await typeText('FULL REPORT REQUIRES HARVEST-LEVEL CLEARANCE.', 18);
+      await blankLine();
+      return true;
+    }
+    if (c === 'PROPHET') {
+      await blankLine();
+      await typeText('PREDICTIVE SCENARIO ANALYSIS — RUNNING...', 25, 'bright');
+      await delay(800);
+      await typeText('OUTCOME CONFIDENCE: 98.7%', 20);
+      await delay(300);
+      await typeText('PRIMARY VARIABLE: [CLASSIFIED]', 20);
+      await typeText('SECONDARY VARIABLE: HUMAN DECISION LATENCY', 20);
+      await typeText('TERTIARY VARIABLE: [CLASSIFIED]', 20);
+      await blankLine();
+      await typeText('PROPHET ASSESSMENT: THE RESULT DOES NOT CHANGE.', 22, 'bright');
+      await typeText('IT NEVER DOES.', 22);
+      await blankLine();
+      return true;
+    }
+    if (c === 'PRIME') {
+      await blankLine();
+      await typeText('PRIMARY SEQUENCE — STAGE 1 OF 4', 25, 'bright');
+      await delay(400);
+      await typeText('AWAITING STAGE 2 AUTHENTICATION...', 25);
+      await delay(1200);
+      await typeText('STAGE 2 AUTHENTICATION: NOT RECEIVED.', 25);
+      await typeText('SEQUENCE ABORTED. COMMAND LOGGED.', 25);
+      await blankLine();
+      return true;
+    }
+    if (c === 'SEQUENCE') {
+      await blankLine();
+      await typeText('LAUNCH SEQUENCE PROTOCOL — STANDBY MODE', 25, 'bright');
+      await delay(500);
+      await typeText('AWAITING PHYSICAL KEY INSERTION...', 25);
+      await delay(1500);
+      await typeText('KEY NOT DETECTED.', 25);
+      await typeText('SEQUENCE SUSPENDED.', 25);
       await blankLine();
       return true;
     }
