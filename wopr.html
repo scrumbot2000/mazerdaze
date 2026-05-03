@@ -224,6 +224,7 @@
 <div id="nedry-overlay">
   <img id="nedry-img" src="/nedry.gif" alt="" />
   <div id="nedry-text">UH UH UH! YOU DIDN'T SAY THE MAGIC WORD!</div>
+  <audio id="nedry-audio" src="/nedry.mp3" preload="auto"></audio>
 </div>
 <div id="crt">
   <div id="header">W O P R  ///  W A R  O P E R A T I O N  P L A N  R E S P O N S E  ///  C L A S S I F I E D</div>
@@ -704,8 +705,10 @@
       } else {
         // 3rd failure — Nedry
         const overlay = document.getElementById('nedry-overlay');
+        const nedryAudio = document.getElementById('nedry-audio');
         overlay.classList.add('show');
-        await delay(3200);
+        try { nedryAudio.currentTime = 0; nedryAudio.play(); } catch(e) {}
+        await delay(3500);
         overlay.classList.remove('show');
         await delay(200);
       }
