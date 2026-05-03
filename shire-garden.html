@@ -378,6 +378,7 @@ body.has-selection .plot-cell:not(.planted):hover { background:rgba(180,230,80,0
         <div class="pal-item" onclick="selectPlant('🌿','Old Toby Herb')"><span class="pal-emoji">🌿</span><span class="pal-name">Old Toby Herb</span></div>
         <div class="pal-item" onclick="selectPlant('🍇','Shire Berries')"><span class="pal-emoji">🍇</span><span class="pal-name">Shire Berries</span></div>
         <div class="pal-item" onclick="selectPlant('🌹','Bag End Rose')"><span class="pal-emoji">🌹</span><span class="pal-name">Bag End Rose</span></div>
+        <div class="pal-item" onclick="selectPlant('💮','White Gardenia')"><span class="pal-emoji">💮</span><span class="pal-name">White Gardenia</span></div>
         <div class="pal-item" onclick="selectPlant('🍀','Athelas')"><span class="pal-emoji">🍀</span><span class="pal-name">Athelas</span></div>
       </div>
       <div class="pal-group">
@@ -386,6 +387,7 @@ body.has-selection .plot-cell:not(.planted):hover { background:rgba(180,230,80,0
         <div class="pal-item" onclick="selectPlant('🧅','Shire Onion')"><span class="pal-emoji">🧅</span><span class="pal-name">Shire Onion</span></div>
         <div class="pal-item" onclick="selectPlant('🌽','Hobbit Corn')"><span class="pal-emoji">🌽</span><span class="pal-name">Hobbit Corn</span></div>
         <div class="pal-item" onclick="selectPlant('🌱','Pipeweed')"><span class="pal-emoji">🌱</span><span class="pal-name">Pipeweed</span></div>
+        <div class="pal-item" onclick="selectPlant('🪻','Shire Lavender')"><span class="pal-emoji">🪻</span><span class="pal-name">Shire Lavender</span></div>
       </div>
       <div class="pal-group">
         <div class="pal-group-label">Natalie's</div>
@@ -400,6 +402,7 @@ body.has-selection .plot-cell:not(.planted):hover { background:rgba(180,230,80,0
         <div class="pal-item" onclick="selectPlant('🥔','Taters')"><span class="pal-emoji">🥔</span><span class="pal-name">Taters</span></div>
         <div class="pal-item" onclick="selectPlant('🥕','Hobbit Carrots')"><span class="pal-emoji">🥕</span><span class="pal-name">Hobbit Carrots</span></div>
         <div class="pal-item" onclick="selectPlant('🥒','Green Peas')"><span class="pal-emoji">🥒</span><span class="pal-name">Green Peas</span></div>
+        <div class="pal-item" onclick="selectPlant('🪷','Morning Lily')"><span class="pal-emoji">🪷</span><span class="pal-name">Morning Lily</span></div>
       </div>
       <div class="pal-group">
         <div class="pal-group-label">Shared</div>
@@ -601,9 +604,14 @@ function renderPlot(p) {
   document.getElementById('count-' + p).textContent = n + '/' + CELLS;
 }
 
+let partyAnnounced = false;
 function updateTotalCount() {
   const t = PLOTS.reduce((s,p) => s + garden[p].filter(Boolean).length, 0);
   document.getElementById('total-count').textContent = t + ' of 72 planted';
+  if (!partyAnnounced && t >= 36) {
+    partyAnnounced = true;
+    setTimeout(() => showToast('🎉', 'Midsummer Feast!', 'Half the garden is blooming — time for a proper Hobbit party. Second breakfast is now the least of it.'), 800);
+  }
 }
 
 function renderTokens() {
