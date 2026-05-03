@@ -744,7 +744,7 @@
 
   // ── LOGIN ─────────────────────────────────────────
   async function loginState() {
-    const input = await waitForInput('LOGON:');
+    const input = await waitForInput('>');
     resetIdle();
     if (await handleSpecialCommand(input)) { await loginState(); return; }
     await authNoise();
