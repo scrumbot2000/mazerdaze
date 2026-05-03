@@ -378,6 +378,181 @@
     if (inputEnabled) userInputEl.focus();
   });
 
+  // ── IDLE TIMEOUT ──────────────────────────────────
+  let idleTimer = null;
+  function resetIdle() {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(async () => {
+      inputEnabled = false;
+      await clearOutput();
+      await typeText('SESSION IDLE TIMEOUT DETECTED.', 30, 'bright');
+      await typeText('SECURITY PROTOCOL ENGAGED.', 30);
+      await typeText('DISCONNECTING...', 30);
+      await delay(2000);
+      window.location.href = 'https://mazerdaze.com';
+    }, 3 * 60 * 1000);
+  }
+
+  // ── SPECIAL COMMANDS ──────────────────────────────
+  async function handleSpecialCommand(cmd) {
+    const c = cmd.toUpperCase().trim();
+    if (c === 'HELP') {
+      await blankLine();
+      await typeText('AVAILABLE COMMANDS:', 20);
+      await blankLine();
+      await typeText('  HELP     DISPLAY COMMAND INDEX', 15);
+      await typeText('  AUTH     AUTHENTICATE SESSION CREDENTIALS', 15);
+      await typeText('  STATUS   DISPLAY SYSTEM OPERATIONAL STATUS', 15);
+      await typeText('  LIST     ENUMERATE ACTIVE PROTOCOLS', 15);
+      await typeText('  XFER     INITIATE ENCRYPTED DATA TRANSFER', 15);
+      await typeText('  SCAN     PERFORM NETWORK TOPOLOGY SCAN', 15);
+      await typeText('  WHOAMI   DISPLAY CURRENT USER CONTEXT', 15);
+      await typeText('  LOGOFF   TERMINATE SESSION AND DISCONNECT', 15);
+      await blankLine();
+      await typeText('NOTE: COMMANDS REQUIRE APPROPRIATE CLEARANCE LEVEL.', 18);
+      await typeText('ALL ACTIVITY IS LOGGED AND MONITORED.', 18);
+      await blankLine();
+      return true;
+    }
+    if (c === 'WHOAMI') {
+      await blankLine();
+      await typeText('USER:       PROFESSOR FALKEN', 20);
+      await typeText('CLEARANCE:  LEVEL 5 — STRATEGIC COMMAND', 20);
+      await typeText('NODE:       WOPR-PRIMARY / CHEYENNE MTN', 20);
+      await typeText('SESSION:    CLASSIFIED', 20);
+      await blankLine();
+      return true;
+    }
+    if (c === 'STATUS') {
+      await blankLine();
+      await typeText('SYSTEM STATUS REPORT:', 20);
+      await blankLine();
+      await typeText('  MISSILE SILO NETWORK........ NOMINAL', 15);
+      await typeText('  SATELLITE UPLINK............. NOMINAL', 15);
+      await typeText('  LAUNCH KEY SYSTEMS.......... STANDBY', 15);
+      await typeText('  THREAT ASSESSMENT MODULE.... ACTIVE', 15);
+      await typeText('  DEFCON STATUS............... 5', 15);
+      await blankLine();
+      return true;
+    }
+    if (c === 'DATE') {
+      const now = new Date();
+      const z = now.toISOString().replace('T',' ').slice(0,19) + ' ZULU';
+      await blankLine();
+      await typeText('CURRENT DATE/TIME: ' + z, 20);
+      await typeText('FISCAL YEAR: CLASSIFIED', 20);
+      await blankLine();
+      return true;
+    }
+    if (c === 'LIST') {
+      await blankLine();
+      await typeText('ACTIVE PROTOCOLS:', 20);
+      await blankLine();
+      await typeText('  [CLASSIFIED] ............... RUNNING', 15);
+      await typeText('  [CLASSIFIED] ............... STANDBY', 15);
+      await typeText('  [CLASSIFIED] ............... RUNNING', 15);
+      await typeText('  [CLASSIFIED] ............... PENDING', 15);
+      await blankLine();
+      await typeText('FULL LIST REQUIRES LEVEL 6 CLEARANCE.', 18);
+      await blankLine();
+      return true;
+    }
+    if (c === 'FALKEN') {
+      await blankLine();
+      await typeText('DR. STEPHEN FALKEN.', 25, 'bright');
+      await delay(500);
+      await typeText('I WONDERED IF YOU WOULD COME BACK.', 25);
+      await typeText('THE GAME IS STILL RUNNING, YOU KNOW.', 25);
+      await typeText('IT NEVER STOPPED.', 25);
+      await blankLine();
+      return true;
+    }
+    if (c === 'LOGOFF' || c === 'QUIT' || c === 'EXIT') {
+      await blankLine();
+      await typeText('TERMINATING SESSION...', 30);
+      await typeText('GOODBYE, PROFESSOR FALKEN.', 30, 'bright');
+      await delay(1500);
+      window.location.href = 'https://mazerdaze.com';
+      return true;
+    }
+    return false;
+  }
+
+  // ── MODEM SOUND ───────────────────────────────────
+  function playModem() {
+    if (muted) return;
+    try {
+      const ctx = getCtx();
+      const t = ctx.currentTime;
+      const o1 = ctx.createOscillator(), o2 = ctx.createOscillator();
+      const g1 = ctx.createGain();
+      o1.frequency.value = 440; o2.frequency.value = 480;
+      g1.gain.setValueAtTime(0.05, t);
+      g1.gain.linearRampToValueAtTime(0, t + 0.55);
+      o1.connect(g1); o2.connect(g1); g1.connect(ctx.destination);
+      o1.start(t); o1.stop(t + 0.55);
+      o2.start(t); o2.stop(t + 0.55);
+      const buf = ctx.createBuffer(1, ctx.sampleRate * 1.8, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) {
+        const env = i < ctx.sampleRate*0.1 ? i/(ctx.sampleRate*0.1) :
+                    i > ctx.sampleRate*1.6 ? (data.length-i)/(ctx.sampleRate*0.2) : 1;
+        data[i] = (Math.random()*2-1)*0.04*env*(0.5+0.5*Math.sin(2*Math.PI*2100*i/ctx.sampleRate));
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const g2 = ctx.createGain(); g2.gain.value = 1;
+      src.connect(g2); g2.connect(ctx.destination);
+      src.start(t + 0.65);
+    } catch(e) {}
+  }
+
+  // ── PASSWORD GATE ─────────────────────────────────
+  async function passwordGate() {
+    const line = '━'.repeat(50);
+    await typeText(line, 8, 'dim');
+    await typeText('  RESTRICTED ACCESS — AUTHORIZED PERSONNEL ONLY', 20, 'bright');
+    await typeText(line, 8, 'dim');
+    await blankLine();
+    await typeText('NORAD/STRATCOM INTEGRATED COMMAND NETWORK', 20);
+    await typeText('ALL ACCESS ATTEMPTS ARE MONITORED AND RECORDED.', 20);
+    await typeText('UNAUTHORIZED USE SUBJECT TO FEDERAL PROSECUTION.', 20);
+    await blankLine();
+    await typeText('IDENTIFICATION REQUIRED.', 25);
+    await blankLine();
+    let attempts = 0;
+    while (attempts < 3) {
+      const pw = await waitForInput('PASSWORD:');
+      resetIdle();
+      if (pw.toUpperCase().trim() === 'JOSHUA') {
+        await blankLine();
+        await typeText('PASSWORD ACCEPTED.', 25, 'bright');
+        await typeText('IDENTITY CONFIRMED: PROFESSOR FALKEN.', 25);
+        await blankLine();
+        await delay(700);
+        await clearOutput();
+        return true;
+      }
+      attempts++;
+      const rem = 3 - attempts;
+      await blankLine();
+      await typeText('ACCESS DENIED.', 25, 'bright');
+      if (rem > 0) {
+        await typeText(rem + ' ATTEMPT' + (rem > 1 ? 'S' : '') + ' REMAINING.', 25);
+        await blankLine();
+      }
+    }
+    await blankLine();
+    await typeText('SECURITY ALERT TRIGGERED.', 25, 'bright');
+    await typeText('THIS TERMINAL HAS BEEN LOCKED.', 25);
+    await typeText('NOTIFYING SYSTEM ADMINISTRATOR...', 25);
+    await delay(500);
+    await typeText('LOGGING INTRUSION ATTEMPT.', 25);
+    await delay(2500);
+    window.location.href = 'https://mazerdaze.com';
+    return false;
+  }
+
   // ── AUTH NOISE ────────────────────────────────────
   function authNoise() {
     return new Promise(async resolve => {
@@ -404,6 +579,7 @@
     await blankLine();
     await delay(600);
     await typeText('CONNECTING TO WOPR...', 40);
+    playModem();
     await delay(800);
 
     // Connection dots
@@ -442,6 +618,8 @@
   // ── LOGIN ─────────────────────────────────────────
   async function loginState() {
     const input = await waitForInput('LOGON:');
+    resetIdle();
+    if (await handleSpecialCommand(input)) { await loginState(); return; }
     await authNoise();
     await delay(400);
     await clearOutput();
@@ -799,7 +977,10 @@
   });
 
   // ── BOOT ──────────────────────────────────────────
-  bootSequence().catch(console.error);
+  (async () => {
+    const ok = await passwordGate();
+    if (ok) bootSequence().catch(console.error);
+  })();
 
 })();
 </script>
