@@ -918,6 +918,7 @@
       await blankLine();
 
       const input = await waitForInput('>');
+      resetIdle();
       if (!input.trim()) { await showGameMenu(true); return; }
       if (input.toUpperCase() === 'EXIT' || input.toUpperCase() === 'QUIT' || input.toUpperCase() === 'GAMES') {
         await blankLine();
