@@ -1113,13 +1113,14 @@
       let running=true, rafId, lastTs=null;
 
       // Phases — each has outRatio (player strikes), inRatio (counter-strikes), thirdRatio (3rd party)
-      // Ratios are weights; they don't need to sum to 1
+      // dur = base duration in ms; actual duration shortens as impact count rises (IMPACT_SPEEDUP_MS per hit)
+      const IMPACT_SPEEDUP_MS = 120;
       const PHASES = [
-        {level:4, label:'DEFCON 4',                                       travel:3100, spawnMs:1000, total:5,   dur:7000, out:1.0, in:0.0, third:0.0},
-        {level:3, label:'DEFCON 3',                                       travel:1700, spawnMs:420,  total:14,  dur:6500, out:0.7, in:0.3, third:0.0},
-        {level:2, label:'\u25A0 DEFCON 2 \u2014 CRITICAL',               travel:700,  spawnMs:150,  total:35,  dur:5500, out:0.5, in:0.4, third:0.1},
-        {level:1, label:'\u25A0\u25A0 DEFCON 1 \u2014 LAUNCH AUTHORIZED', travel:300,  spawnMs:55,   total:90,  dur:5000, out:0.4, in:0.4, third:0.2},
-        {level:1, label:'RUNNING SCENARIOS \u2014 COMPUTING ALL OUTCOMES', travel:80,  spawnMs:11,   total:800, dur:9500, out:0.35,in:0.35,third:0.3},
+        {level:4, label:'DEFCON 4',                                           travel:3100, spawnMs:1000, total:5,    dur:7000,  out:1.0, in:0.0, third:0.0},
+        {level:3, label:'DEFCON 3',                                           travel:1700, spawnMs:420,  total:18,   dur:6500,  out:0.7, in:0.3, third:0.0},
+        {level:2, label:'\u25A0 DEFCON 2 \u2014 CRITICAL',                   travel:700,  spawnMs:140,  total:50,   dur:5500,  out:0.5, in:0.4, third:0.1},
+        {level:1, label:'\u25A0\u25A0 DEFCON 1 \u2014 LAUNCH AUTHORIZED',   travel:280,  spawnMs:48,   total:200,  dur:5000,  out:0.4, in:0.4, third:0.2},
+        {level:0, label:'\u25A0\u25A0\u25A0 TOTAL WAR \u2014 NO RECALL',    travel:70,   spawnMs:8,    total:3000, dur:10000, out:0.35,in:0.35,third:0.3},
       ];
 
       let pi=0, phaseStart=null, spawned=0, lastSpawn=0, concluded=false;
@@ -1238,12 +1239,12 @@
       }
 
       function drawHUD() {
-        const col=defconLevel<=1?'#ff3333':defconLevel<=2?'#ff8800':defconLevel<=3?'#ffcc00':'#33ff33';
+        const col=defconLevel<=0?'#ff00ff':defconLevel<=1?'#ff3333':defconLevel<=2?'#ff8800':defconLevel<=3?'#ffcc00':'#33ff33';
         cx.font='bold 15px Courier New'; cx.fillStyle=col; cx.shadowBlur=12; cx.shadowColor=col;
         cx.fillText(hudLabel,20,36); cx.shadowBlur=0;
         if(hudSub){cx.font='11px Courier New';cx.fillStyle='#33ff33';cx.globalAlpha=0.75;cx.fillText(hudSub,20,56);cx.globalAlpha=1;}
         const inFlight=missiles.filter(m=>!m.finished).length;
-        if(inFlight>0){cx.font='11px Courier New';cx.fillStyle='#33aa33';cx.fillText('MISSILES IN FLIGHT: '+inFlight,20,H-20);}
+        if(inFlight>0){cx.font='11px Courier New';cx.fillStyle='#33aa33';cx.fillText('MISSILES IN FLIGHT: '+inFlight.toLocaleString(),20,H-20);}
         // Legend
         const legend=[{col:'#33ff33',label:'OUTBOUND'},
                       {col:'#ff6622',label:'COUNTER-STRIKE'},
@@ -1293,9 +1294,11 @@
           if(phaseStart===null)phaseStart=now;
           const ph=PHASES[pi];
           defconLevel=ph.level; hudLabel=ph.label;
-          hudSub=pi===4?'SCENARIO '+Math.min(spawned,ph.total)+' OF '+ph.total:'';
+          hudSub=pi===4?'SCENARIO '+Math.min(spawned,ph.total).toLocaleString()+' OF '+ph.total.toLocaleString():'';
           if(spawned<ph.total&&now-lastSpawn>=ph.spawnMs){spawnMissile(ph);lastSpawn=now;}
-          if(now-phaseStart>=ph.dur){
+          // Phase duration shrinks as impact count rises — more chaos = faster escalation
+          const effectiveDur = Math.max(1800, ph.dur - craters.length * IMPACT_SPEEDUP_MS);
+          if(now-phaseStart>=effectiveDur){
             pi++;
             if(pi>=PHASES.length){
               concluded=true; hudLabel='\u25A0 SIMULATION COMPLETE'; hudSub='';
