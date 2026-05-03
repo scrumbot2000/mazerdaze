@@ -1082,6 +1082,24 @@
       const playerCities = isUS ? usCities   : ussrCities;
       const enemyCities  = isUS ? ussrCities : usCities;
 
+      // ── Match player-typed target cities against known positions ──
+      function fuzzyFind(typed, cities) {
+        const t = typed.toLowerCase().replace(/[^a-z ]/g,'').trim();
+        return cities.find(c => {
+          const n = c.name.toLowerCase();
+          return n === t || n.includes(t) || t.includes(n.split(' ')[0]);
+        });
+      }
+      const declaredTargets = new Set();
+      const declaredTargetObjs = [];
+      (playerTargets || []).forEach(typed => {
+        const match = fuzzyFind(typed, enemyCities);
+        if (match && !declaredTargets.has(match.name)) {
+          declaredTargets.add(match.name);
+          declaredTargetObjs.push(match);
+        }
+      });
+
       // Missile type colors
       const TYPE_COLOR = {
         out:   {stroke:'rgba(51,255,51,',  head:'#aaffaa', shadow:'#33ff33', crater:'rgba(255,80,20,',  cShadow:'#ff4400'},
@@ -1118,7 +1136,11 @@
         let src, tgt;
         if (type === 'out') {
           src = playerCities[Math.floor(Math.random()*playerCities.length)];
-          tgt = enemyCities[Math.floor(Math.random()*enemyCities.length)];
+          // Bias early phases toward declared targets; later phases go random
+          const useDeclared = declaredTargetObjs.length > 0 && pi <= 2 && Math.random() < 0.65;
+          tgt = useDeclared
+            ? declaredTargetObjs[Math.floor(Math.random()*declaredTargetObjs.length)]
+            : enemyCities[Math.floor(Math.random()*enemyCities.length)];
         } else if (type === 'in') {
           src = enemyCities[Math.floor(Math.random()*enemyCities.length)];
           tgt = playerCities[Math.floor(Math.random()*playerCities.length)];
@@ -1149,14 +1171,36 @@
       }
 
       function drawCitySet(cities, labelCol) {
+        const now2 = Date.now();
         cities.forEach(city => {
           const hit = hitSet.has(city.name);
-          cx.beginPath(); cx.arc(city.x,city.y,hit?5:3,0,Math.PI*2);
-          cx.fillStyle = hit ? '#ff3333' : (labelCol||'#33ff33');
-          cx.shadowBlur = hit?16:5; cx.shadowColor = cx.fillStyle;
+          const isTarget = declaredTargets.has(city.name);
+
+          // Pulsing target reticle for declared cities (until hit)
+          if (isTarget && !hit) {
+            const pulse = 0.5 + 0.5*Math.sin(now2 / 280);
+            const r1 = 9 + pulse * 5;
+            cx.beginPath(); cx.arc(city.x, city.y, r1, 0, Math.PI*2);
+            cx.strokeStyle = `rgba(255,60,60,${0.4+0.4*pulse})`;
+            cx.lineWidth = 1.5; cx.shadowBlur = 8; cx.shadowColor = '#ff3333';
+            cx.stroke(); cx.shadowBlur = 0;
+            // crosshair ticks
+            const tk = 4;
+            [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dx,dy]) => {
+              cx.beginPath();
+              cx.moveTo(city.x + dx*(r1-tk), city.y + dy*(r1-tk));
+              cx.lineTo(city.x + dx*(r1+tk), city.y + dy*(r1+tk));
+              cx.strokeStyle = `rgba(255,60,60,${0.6+0.3*pulse})`;
+              cx.lineWidth = 1; cx.stroke();
+            });
+          }
+
+          cx.beginPath(); cx.arc(city.x,city.y,hit?5:isTarget?4:3,0,Math.PI*2);
+          cx.fillStyle = hit ? '#ff3333' : isTarget ? '#ff9900' : (labelCol||'#33ff33');
+          cx.shadowBlur = hit?16:isTarget?10:5; cx.shadowColor = cx.fillStyle;
           cx.fill(); cx.shadowBlur=0;
-          cx.font='9px Courier New';
-          cx.fillStyle = hit ? '#ff6666' : (labelCol||'#22bb22');
+          cx.font = isTarget ? 'bold 9px Courier New' : '9px Courier New';
+          cx.fillStyle = hit ? '#ff6666' : isTarget ? '#ffaa33' : (labelCol||'#22bb22');
           cx.fillText(city.name, city.x+5, city.y-3);
         });
       }
