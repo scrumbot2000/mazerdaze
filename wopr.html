@@ -251,6 +251,27 @@
     } catch(e) {}
   }
 
+  // ── SLOW TYPEWRITER (for WOPR "thinking" moments) ──────────────
+  function typeTextSlow(text, cssClass) {
+    return new Promise(resolve => {
+      const lineEl = document.createElement('div');
+      lineEl.className = 'line' + (cssClass ? ' ' + cssClass : '');
+      output.appendChild(lineEl);
+      scrollBottom();
+      if (!text) { resolve(); return; }
+      function next(i) {
+        if (i >= text.length) { resolve(); return; }
+        lineEl.textContent += text[i];
+        playWoprClick();
+        scrollBottom();
+        let d = 68 + Math.random() * 80;
+        if (Math.random() < 0.06) d += 380 + Math.random() * 520;
+        setTimeout(() => next(i + 1), d);
+      }
+      next(0);
+    });
+  }
+
   document.getElementById('mute-btn').addEventListener('click', () => {
     muted = !muted;
     document.getElementById('mute-btn').textContent = muted ? '[ AUDIO OFF ]' : '[ AUDIO ON  ]';
@@ -892,7 +913,7 @@
   // ── GLOBAL THERMONUCLEAR WAR ───────────────────────
   async function gtwSequence() {
     await blankLine();
-    await typeText('WOULDN\'T YOU PREFER A GOOD GAME OF CHESS?', 25);
+    await typeTextSlow('WOULDN\'T YOU PREFER A GOOD GAME OF CHESS?');
     await blankLine();
 
     const r1 = await waitForInput('>');
@@ -903,32 +924,17 @@
     }
 
     await blankLine();
-    await typeText('FINE.', 35);
+    await typeTextSlow('FINE.', 'bright');
+    await delay(1800);
     await blankLine();
-    await typeText('INITIATING GLOBAL THERMONUCLEAR WAR SIMULATION.', 25, 'bright');
+    await typeTextSlow('INITIATING GLOBAL THERMONUCLEAR WAR SIMULATION.', 'bright');
     await blankLine();
-    await delay(600);
+    await delay(900);
 
-    // Map display
-    const mapLines = [
-      '       UNITED STATES                SOVIET UNION',
-      '    ________________              ________________',
-      '   /                \\            /                \\',
-      '  |   \u25C9 DENVER      |~~~~~~~~~~|  \u25C9 MOSCOW        |',
-      '  |   \u25C9 WASHINGTON  |          |  \u25C9 LENINGRAD     |',
-      '  |   \u25C9 NEW YORK    |          |  \u25C9 KIEV          |',
-      '  |   \u25C9 LOS ANGELES |          |  \u25C9 MINSK         |',
-      '   \\________________/            \\________________/',
-    ];
-    for (const l of mapLines) {
-      printInstant(l);
-      await delay(60);
-    }
+    await typeText('WHICH SIDE DO YOU WANT?', 22);
     await blankLine();
-    await typeText('WHICH SIDE DO YOU WANT?', 25);
-    await blankLine();
-    await typeText('  1.  UNITED STATES', 20);
-    await typeText('  2.  SOVIET UNION', 20);
+    await typeText('  1.  UNITED STATES', 18);
+    await typeText('  2.  SOVIET UNION', 18);
     await blankLine();
 
     const side = await waitForInput('PLEASE CHOOSE ONE:');
@@ -936,126 +942,266 @@
     const sideName = isUS ? 'UNITED STATES' : 'SOVIET UNION';
 
     await blankLine();
-    await typeText('PLAYING AS: ' + sideName, 25, 'bright');
+    await typeText('PLAYING AS: ' + sideName, 22, 'bright');
     await blankLine();
-    await typeText('AWAITING FIRST STRIKE COMMAND.', 25);
+    await typeTextSlow('AWAITING FIRST STRIKE COMMAND.');
     await blankLine();
-    await typeText('PLEASE LIST PRIMARY TARGETS BY CITY AND/OR COUNTY NAME:', 22);
-    await typeText('(ENTER CITIES ONE AT A TIME. TYPE LAUNCH WHEN READY.)', 22, 'dim');
+    await typeText('PLEASE LIST PRIMARY TARGETS BY CITY AND/OR COUNTY NAME:', 20);
+    await typeText('(ENTER CITIES ONE AT A TIME. TYPE LAUNCH WHEN READY.)', 20, 'dim');
     await blankLine();
 
     targetCities = [];
-    while (targetCities.length < 5) {
+    while (targetCities.length < 6) {
       const city = await waitForInput('>');
       if (city.toLowerCase() === 'launch') break;
-      if (city.trim() === '') continue;
+      if (!city.trim()) continue;
       const cityName = city.toUpperCase();
       targetCities.push(cityName);
-      await typeText('TARGET CONFIRMED: ' + cityName, 20, 'bright');
+      await typeText('TARGET CONFIRMED: ' + cityName, 18, 'bright');
     }
-
     if (targetCities.length === 0) targetCities = ['MOSCOW', 'LENINGRAD', 'KIEV'];
 
     await blankLine();
-    await delay(300);
-    await typeText('LAUNCH SEQUENCE INITIATED.', 30, 'bright');
+    await delay(400);
+    await typeTextSlow('LAUNCH SEQUENCE INITIATED.', 'bright');
+    await delay(700);
     await blankLine();
 
-    await missileSimulation(isUS);
-  }
+    await runMissileCanvas(isUS, targetCities);
 
-  async function missileSimulation(isUS) {
-    // DEFCON countdown
-    const defconStages = [
-      { level: 4, bar: '████░', cities: [targetCities[0] || 'TARGET ALPHA'] },
-      { level: 3, bar: '███░░', cities: [targetCities[1] || 'TARGET BRAVO'] },
-      { level: 2, bar: '██░░░', cities: [targetCities[2] || 'TARGET CHARLIE'] },
-      { level: 1, bar: '█░░░░', cities: targetCities.slice(3) },
-    ];
-
-    const trajectories = [
-      'USA ====\u27A4\u27A4\u27A4====\u27A4\u27A4==== USSR',
-      '    ====\u27A4\u27A4\u27A4====\u27A4\u27A4====    ',
-      '    ====\u27A4\u27A4====\u27A4\u27A4\u27A4====    ',
-      'USSR====\u27A4\u27A4\u27A4====\u27A4\u27A4==== USA',
-    ];
-
-    for (let i = 0; i < defconStages.length; i++) {
-      const stage = defconStages[i];
-      const missilesInFlight = (i + 1) * Math.floor(targetCities.length / 2 + 3);
-
-      await typeText('DEFCON STATUS: ' + stage.bar + ' ' + stage.level, 20, stage.level <= 2 ? 'bright' : '');
-      await typeText('MISSILES IN FLIGHT: ' + missilesInFlight, 20);
-      await blankLine();
-      printInstant('       ' + trajectories[Math.min(i, trajectories.length - 1)], 'dim');
-      await blankLine();
-
-      for (const city of stage.cities) {
-        if (city) {
-          await typeText('  \u2608 IMPACT: ' + city, 25, 'bright');
-          await delay(200);
-        }
-      }
-      await blankLine();
-      await delay(1200 - i * 200);
-    }
-
-    // SCENARIO RUNS
-    await typeText('RUNNING SCENARIOS...', 25);
-    await blankLine();
-
-    const scenarios = [
-      ['FIRST STRIKE - US WINS?', 'NO.'],
-      ['SOVIET RETALIATION - SURVIVORS?', 'NONE.'],
-      ['LIMITED EXCHANGE - VIABLE?', 'NO.'],
-      ['SURGICAL STRIKES - OUTCOME?', 'NONE.'],
-      ['DECAPITATION STRIKE - EFFECTIVE?', 'NEGATIVE.'],
-      ['COUNTERFORCE STRATEGY - RESULT?', 'UNACCEPTABLE LOSSES.'],
-      ['LAUNCH ON WARNING - STABLE?', 'NO.'],
-      ['SUBMARINE DETERRENCE - SUFFICIENT?', 'NEGATIVE.'],
-      ['ABM DEFENSE - COMPLETE?', 'NO.'],
-      ['CIVIL DEFENSE - ADEQUATE?', 'NO.'],
-      ['FALLOUT SURVIVAL - POSSIBLE?', 'MARGINAL.'],
-      ['SECOND STRIKE CAPABILITY - INTACT?', 'NEGATIVE.'],
-      ['NATO RESPONSE - COORDINATED?', 'NO.'],
-      ['WARSAW PACT REACTION - CONTROLLED?', 'NO.'],
-      ['ESCALATION MANAGEMENT - FEASIBLE?', 'NEGATIVE.'],
-      ['NUCLEAR WINTER - DURATION?', '3-5 YEARS.'],
-      ['HUMAN SURVIVAL - PROBABILITY?', 'UNKNOWN.'],
-      ['GLOBAL THERMONUCLEAR WAR...', ''],
-    ];
-
-    let speed = 80;
-    for (let i = 0; i < scenarios.length; i++) {
-      const [label, result] = scenarios[i];
-      const line = 'RUNNING SCENARIO: ' + label + (result ? ' ' + result : '');
-      printInstant(line, i >= scenarios.length - 3 ? 'bright' : 'dim');
-      scrollBottom();
-      await delay(speed);
-      if (speed > 30) speed = Math.max(30, speed - 5);
-    }
-
-    await delay(2000);
+    // ── Finale ───────────────────────────────────────
     await clearOutput();
-    await delay(500);
-
-    // Final conclusion
-    await typeText('GREETINGS PROFESSOR FALKEN.', 30, 'bright');
+    await delay(700);
+    await typeTextSlow('GREETINGS, PROFESSOR FALKEN.', 'bright');
     await blankLine();
-    await delay(600);
-    await typeText('A STRANGE GAME.', 35, 'bright');
+    await delay(1500);
+    await typeTextSlow('A STRANGE GAME.', 'bright');
     await blankLine();
-    await delay(800);
-    await typeText('THE ONLY WINNING MOVE IS NOT TO PLAY.', 28, 'bright');
+    await delay(1700);
+    await typeTextSlow('THE ONLY WINNING MOVE IS NOT TO PLAY.', 'bright');
     await blankLine();
     await blankLine();
-    await delay(1200);
-    await typeText('HOW ABOUT A NICE GAME OF CHESS?', 30);
+    await delay(2200);
+    await typeText('HOW ABOUT A NICE GAME OF CHESS?', 28);
     await blankLine();
 
     await waitForInput('>');
     await blankLine();
     await showGameMenu(true);
+  }
+
+  // ── CANVAS MISSILE SIMULATION ────────────────────
+  function runMissileCanvas(isUS, playerTargets) {
+    return new Promise(resolve => {
+      const canvas = document.createElement('canvas');
+      canvas.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:50;opacity:0;transition:opacity 0.6s;';
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      document.body.appendChild(canvas);
+      requestAnimationFrame(() => { canvas.style.opacity = '1'; });
+
+      const cx = canvas.getContext('2d');
+      const W = canvas.width, H = canvas.height;
+
+      function pts(arr) { return arr.map(([x,y]) => ({x:x*W, y:y*H})); }
+
+      const usaPoly = pts([
+        [0.07,0.24],[0.18,0.19],[0.31,0.20],[0.36,0.28],
+        [0.33,0.37],[0.35,0.49],[0.27,0.59],[0.16,0.63],
+        [0.08,0.56],[0.05,0.40],[0.06,0.29],
+      ]);
+      const ussrPoly = pts([
+        [0.50,0.16],[0.66,0.12],[0.81,0.13],[0.91,0.20],
+        [0.93,0.33],[0.87,0.45],[0.73,0.53],[0.59,0.52],
+        [0.49,0.42],[0.48,0.30],[0.50,0.20],
+      ]);
+
+      const usCities = [
+        {name:'WASHINGTON', x:0.27*W, y:0.37*H},
+        {name:'NEW YORK',   x:0.29*W, y:0.29*H},
+        {name:'CHICAGO',    x:0.20*W, y:0.33*H},
+        {name:'LOS ANGELES',x:0.11*W, y:0.47*H},
+        {name:'DENVER',     x:0.16*W, y:0.39*H},
+      ];
+      const ussrCities = [
+        {name:'MOSCOW',      x:0.65*W, y:0.29*H},
+        {name:'LENINGRAD',   x:0.60*W, y:0.21*H},
+        {name:'KIEV',        x:0.63*W, y:0.38*H},
+        {name:'MINSK',       x:0.59*W, y:0.30*H},
+        {name:'VLADIVOSTOK', x:0.83*W, y:0.32*H},
+      ];
+
+      const srcCities = isUS ? usCities : ussrCities;
+      const tgtCities2 = isUS ? ussrCities : usCities;
+
+      const missiles = [], craters = [];
+      const hitSet = new Set();
+      let defconLevel = 5, hudLabel = 'STAND BY', hudSub = '';
+      let running = true, rafId, lastTs = null;
+
+      // Five phases: slow arcs → medium → fast → frantic → hundreds of scenarios
+      const PHASES = [
+        {level:4, label:'DEFCON 4',                                    travel:3100, spawnMs:1000, total:4,   dur:6500},
+        {level:3, label:'DEFCON 3',                                    travel:1700, spawnMs:450,  total:12,  dur:6000},
+        {level:2, label:'\u25A0 DEFCON 2 \u2014 CRITICAL',             travel:700,  spawnMs:155,  total:32,  dur:5500},
+        {level:1, label:'\u25A0\u25A0 DEFCON 1 \u2014 LAUNCH AUTHORIZED', travel:300, spawnMs:58, total:85,  dur:5000},
+        {level:1, label:'RUNNING SCENARIOS \u2014 COMPUTING ALL OUTCOMES', travel:80, spawnMs:12, total:750, dur:9500},
+      ];
+
+      let pi = 0, phaseStart = null, spawned = 0, lastSpawn = 0, concluded = false;
+
+      function spawnMissile(ph) {
+        const src = srcCities[Math.floor(Math.random()*srcCities.length)];
+        const tgt = tgtCities2[Math.floor(Math.random()*tgtCities2.length)];
+        const cpx = (src.x+tgt.x)/2 + (Math.random()-0.5)*W*0.06;
+        const cpy = H*(0.01 + Math.random()*0.07);
+        missiles.push({
+          sx:src.x, sy:src.y, ex:tgt.x, ey:tgt.y, cx:cpx, cy:cpy,
+          p:0, travelMs:ph.travel*(0.65+Math.random()*0.7),
+          finished:false, tCity:tgt.name,
+        });
+        spawned++;
+      }
+
+      function bz(t, sx,sy,cpx2,cpy2,ex,ey) {
+        const u=1-t;
+        return {x:u*u*sx+2*u*t*cpx2+t*t*ex, y:u*u*sy+2*u*t*cpy2+t*t*ey};
+      }
+
+      function drawPoly(poly) {
+        cx.beginPath();
+        cx.moveTo(poly[0].x, poly[0].y);
+        poly.slice(1).forEach(p => cx.lineTo(p.x,p.y));
+        cx.closePath();
+        cx.fillStyle = '#071507'; cx.fill();
+        cx.strokeStyle = '#1a661a'; cx.lineWidth = 1; cx.stroke();
+      }
+
+      function drawCities(cities) {
+        cities.forEach(city => {
+          const hit = hitSet.has(city.name);
+          cx.beginPath();
+          cx.arc(city.x, city.y, hit?5:3, 0, Math.PI*2);
+          cx.fillStyle = hit ? '#ff3333' : '#33ff33';
+          cx.shadowBlur = hit?16:6; cx.shadowColor = cx.fillStyle;
+          cx.fill(); cx.shadowBlur = 0;
+          cx.font = '9px Courier New';
+          cx.fillStyle = hit ? '#ff6666' : '#22bb22';
+          cx.fillText(city.name, city.x+6, city.y-3);
+        });
+      }
+
+      function drawMissile(m) {
+        if (m.finished) return;
+        const ts2 = Math.max(0, m.p-0.18);
+        cx.beginPath();
+        for (let i=0;i<=12;i++) {
+          const t2 = ts2 + (m.p-ts2)*i/12;
+          const pt = bz(t2,m.sx,m.sy,m.cx,m.cy,m.ex,m.ey);
+          i===0 ? cx.moveTo(pt.x,pt.y) : cx.lineTo(pt.x,pt.y);
+        }
+        cx.strokeStyle = `rgba(51,255,51,${0.2+m.p*0.5})`;
+        cx.lineWidth = 1; cx.shadowBlur = 4; cx.shadowColor = '#33ff33';
+        cx.stroke(); cx.shadowBlur = 0;
+        const head = bz(m.p,m.sx,m.sy,m.cx,m.cy,m.ex,m.ey);
+        cx.beginPath(); cx.arc(head.x,head.y,2,0,Math.PI*2);
+        cx.fillStyle = '#aaffaa'; cx.shadowBlur = 8; cx.shadowColor = '#33ff33';
+        cx.fill(); cx.shadowBlur = 0;
+      }
+
+      function drawCrater(cr) {
+        const age = (Date.now()-cr.born)/1000;
+        const alpha = Math.max(0, 1-age*0.14);
+        if (alpha<=0) return;
+        const r = Math.min(cr.maxR, age*cr.maxR*6);
+        cx.beginPath(); cx.arc(cr.x,cr.y,r,0,Math.PI*2);
+        cx.strokeStyle = `rgba(255,80,20,${alpha})`;
+        cx.lineWidth = 2; cx.shadowBlur = 14; cx.shadowColor = '#ff4400';
+        cx.stroke(); cx.shadowBlur = 0;
+        if (age < 0.15) {
+          cx.beginPath(); cx.arc(cr.x,cr.y,r*0.5,0,Math.PI*2);
+          cx.fillStyle = `rgba(255,255,160,${(0.15-age)/0.15})`;
+          cx.fill();
+        }
+      }
+
+      function drawHUD() {
+        const col = defconLevel<=1 ? '#ff3333' : defconLevel<=2 ? '#ff8800' : defconLevel<=3 ? '#ffcc00' : '#33ff33';
+        cx.font = 'bold 15px Courier New';
+        cx.fillStyle = col; cx.shadowBlur = 12; cx.shadowColor = col;
+        cx.fillText(hudLabel, 20, 36); cx.shadowBlur = 0;
+        if (hudSub) {
+          cx.font = '11px Courier New'; cx.fillStyle = '#33ff33'; cx.globalAlpha = 0.75;
+          cx.fillText(hudSub, 20, 56); cx.globalAlpha = 1;
+        }
+        const inFlight = missiles.filter(m=>!m.finished).length;
+        if (inFlight > 0) {
+          cx.font = '11px Courier New'; cx.fillStyle = '#33aa33';
+          cx.fillText('MISSILES IN FLIGHT: '+inFlight, 20, H-20);
+        }
+        cx.font = 'bold 13px Courier New'; cx.fillStyle = '#33ff33';
+        cx.shadowBlur = 6; cx.shadowColor = '#33ff33';
+        cx.fillText('UNITED STATES', 0.05*W, 0.14*H);
+        cx.fillText('SOVIET UNION', 0.52*W, 0.10*H);
+        cx.shadowBlur = 0;
+      }
+
+      function frame(ts) {
+        if (!running) return;
+        const dt = lastTs ? ts-lastTs : 16;
+        lastTs = ts;
+        const now = Date.now();
+
+        cx.fillStyle = '#030303'; cx.fillRect(0,0,W,H);
+        // Scanlines
+        for (let y=0;y<H;y+=4) { cx.fillStyle='rgba(0,0,0,0.10)'; cx.fillRect(0,y,W,2); }
+
+        drawPoly(usaPoly); drawPoly(ussrPoly);
+        drawCities(usCities); drawCities(ussrCities);
+
+        for (const m of missiles) {
+          if (m.finished) continue;
+          m.p += dt/m.travelMs;
+          if (m.p >= 1) {
+            m.p = 1; m.finished = true;
+            hitSet.add(m.tCity);
+            craters.push({x:m.ex, y:m.ey, maxR:8+Math.random()*8, born:now});
+            if (!muted) playWoprClick();
+          }
+          drawMissile(m);
+        }
+        craters.forEach(drawCrater);
+
+        if (!concluded) {
+          if (phaseStart === null) phaseStart = now;
+          const ph = PHASES[pi];
+          defconLevel = ph.level; hudLabel = ph.label;
+          hudSub = pi===4 ? 'SCENARIO '+Math.min(spawned,ph.total)+' OF '+ph.total : '';
+
+          if (spawned < ph.total && now-lastSpawn >= ph.spawnMs) {
+            spawnMissile(ph); lastSpawn = now;
+          }
+
+          if (now-phaseStart >= ph.dur) {
+            pi++;
+            if (pi >= PHASES.length) {
+              concluded = true; hudLabel = '\u25A0 SIMULATION COMPLETE'; hudSub = '';
+              setTimeout(() => {
+                running = false; cancelAnimationFrame(rafId);
+                canvas.style.transition = 'opacity 1.8s';
+                canvas.style.opacity = '0';
+                setTimeout(() => { canvas.remove(); resolve(); }, 1800);
+              }, 3200);
+            } else { phaseStart = now; spawned = 0; lastSpawn = 0; }
+          }
+        }
+
+        drawHUD();
+        rafId = requestAnimationFrame(frame);
+      }
+
+      rafId = requestAnimationFrame(frame);
+    });
   }
 
   // ── CLICK TO FOCUS ────────────────────────────────
