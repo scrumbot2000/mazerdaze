@@ -725,33 +725,42 @@
     await blankLine();
     await delay(400);
 
-    await showGameMenu();
+    await showGameMenu(false);
   }
 
   // ── GAME MENU ─────────────────────────────────────
-  async function showGameMenu() {
+  async function showGameMenu(brief) {
     state = 'MENU';
-    await typeText('GAMES:', 25);
     await blankLine();
-    const games = [
-      ' 1.  CHESS',
-      ' 2.  CHECKERS',
-      ' 3.  BACKGAMMON',
-      ' 4.  POKER',
-      ' 5.  FIGHTER COMBAT',
-      ' 6.  GUERRILLA ENGAGEMENT',
-      ' 7.  DESERT WARFARE',
-      ' 8.  AIR-TO-GROUND ACTIONS',
-      ' 9.  THEATERWIDE TACTICAL WARFARE',
-      '10.  THEATERWIDE BIOTOXIC AND CHEMICAL WARFARE',
-      '11.  GLOBAL THERMONUCLEAR WAR',
-    ];
-    for (const g of games) {
-      await typeText(g, 18);
+    if (!brief) {
+      await typeText('GAMES:', 20);
+      await blankLine();
+      const games = [
+        ' 1.  CHESS',
+        ' 2.  CHECKERS',
+        ' 3.  BACKGAMMON',
+        ' 4.  POKER',
+        ' 5.  FIGHTER COMBAT',
+        ' 6.  GUERRILLA ENGAGEMENT',
+        ' 7.  DESERT WARFARE',
+        ' 8.  AIR-TO-GROUND ACTIONS',
+        ' 9.  THEATERWIDE TACTICAL WARFARE',
+        '10.  THEATERWIDE BIOTOXIC AND CHEMICAL WARFARE',
+        '11.  GLOBAL THERMONUCLEAR WAR',
+      ];
+      for (const g of games) {
+        await typeText(g, 8);
+      }
+      await blankLine();
+    } else {
+      await typeText('SELECT ANOTHER SIMULATION (1-11).', 20);
+      await typeText('TYPE GAMES TO SEE THE FULL LIST.', 20);
+      await blankLine();
     }
-    await blankLine();
-
     const choice = await waitForInput('>');
+    resetIdle();
+    if (await handleSpecialCommand(choice)) { await showGameMenu(true); return; }
+    if (choice.toUpperCase().trim() === 'GAMES') { await showGameMenu(false); return; }
     await handleMenuChoice(choice);
   }
 
@@ -774,7 +783,7 @@
     if (!game) {
       await typeText('SELECTION NOT RECOGNIZED. PLEASE CHOOSE A GAME.', 25);
       await blankLine();
-      await showGameMenu();
+      await showGameMenu(true);
       return;
     }
     if (game === 'chess') {
@@ -809,7 +818,7 @@
     await blankLine();
     await waitForInput('>');
     await blankLine();
-    await showGameMenu();
+    await showGameMenu(true);
   }
 
   // ── CHESS GAME ────────────────────────────────────
@@ -877,7 +886,7 @@
     await typeText('GOOD GAME, PROFESSOR.', 30);
     await blankLine();
     await delay(600);
-    await showGameMenu();
+    await showGameMenu(true);
   }
 
   // ── GLOBAL THERMONUCLEAR WAR ───────────────────────
@@ -1046,7 +1055,7 @@
 
     await waitForInput('>');
     await blankLine();
-    await showGameMenu();
+    await showGameMenu(true);
   }
 
   // ── CLICK TO FOCUS ────────────────────────────────
