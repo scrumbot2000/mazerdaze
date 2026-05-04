@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>The Shire Garden — A Hobbit's Harvest</title>
+<style>
+  :root {
+    --bg-spring: #2d4a1e;
+    --bg-summer: #4a3a0e;
+    --bg-autumn: #4a1e0e;
+    --bg-winter: #1a2a3a;
+    --parchment: #c8a96e;
+    --parchment-dark: #8a6b3a;
+    --parchment-light: #e8d4a0;
+    --text-main: #e8d4a0;
+    --text-dim: #a08040;
+    --cell-bg: rgba(0,0,0,0.25);
+    --cell-border: rgba(200,169,110,0.2);
+    --selected-glow: #ffd700;
+    --grid-bg: rgba(0,0,0,0.35);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg-spring);
+    background-image:
+      radial-gradient(ellipse 120% 60% at 20% 110%, rgba(60,100,30,0.6) 0%, transparent 60%),
+      radial-gradient(ellipse 80% 50% at 80% 120%, rgba(40,80,20,0.5) 0%, transparent 55%),
+      radial-gradient(ellipse 100% 40% at 50% 115%, rgba(80,120,40,0.4) 0%, transparent 50%);
+    min-height: 100vh;
+    font-family: Georgia, 'Times New Roman', serif;
+    color: var(--text-main);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 8px 24px;
+    transition: background 1.5s ease;
+    overflow-x: hidden;
+  }
+
+  body.season-spring {
+    background-color: #2d4a1e;
+    background-image:
+      radial-gradient(ellipse 120% 60% at 20% 110%, rgba(60,120,30,0.6) 0%, transparent 60%),
+      radial-gradient(ellipse 80% 50% at 80% 120%, rgba(40,100,20,0.5) 0%, transparent 55%),
+      radial-gradient(ellipse 100% 40% at 50% 115%, rgba(80,150,40,0.4) 0%, transparent 50%);
+  }
+  body.season-summer {
+    background-color: #3a2c08;
+    background-image:
+      radial-gradient(ellipse 120% 60% at 20% 110%, rgba(120,90,20,0.6) 0%, transparent 60%),
+      radial-gradient(ellipse 80% 50% at 80% 120%, rgba(100,70,10,0.5) 0%, transparent 55%),
+      radial-gradient(ellipse 100% 40% at 50% 115%, rgba(140,100,30,0.4) 0%, transparent 50%);
+  }
+  body.season-autumn {
+    background-color: #3a1a08;
+    background-image:
+      radial-gradient(ellipse 120% 60% at 20% 110%, rgba(160,60,20,0.6) 0%, transparent 60%),
+      radial-gradient(ellipse 80% 50% at 80% 120%, rgba(180,80,10,0.5) 0%, transparent 55%),
+      radial-gradient(ellipse 100% 40% at 50% 115%, rgba(140,50,10,0.4) 0%, transparent 50%);
+  }
+  body.season-winter {
+    background-color: #0e1a2a;
+    background-image:
+      radial-gradient(ellipse 120% 60% at 20% 110%, rgba(30,60,120,0.5) 0%, transparent 60%),
+      radial-gradient(ellipse 80% 50% at 80% 120%, rgba(20,40,100,0.4) 0%, transparent 55%),
+      radial-gradient(ellipse 100% 40% at 50% 115%, rgba(40,70,140,0.3) 0%, transparent 50%);
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 10px;
+    position: relative;
+    z-index: 1;
+  }
+  .header h1 {
+    font-size: clamp(1.4rem, 5vw, 2.2rem);
+    color: var(--parchment);
+    text-shadow: 0 0 20px rgba(200,169,110,0.5), 2px 2px 4px rgba(0,0,0,0.8);
+    letter-spacing: 0.05em;
+  }
+  .header .subtitle {
+    font-size: clamp(0.75rem, 2.5vw, 0.95rem);
+    color: var(--text-dim);
+    font-style: italic;
+    margin-top: 2px;
+  }
+
+  /* HUD */
+  .hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 520px;
+    padding: 8px 12px;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--cell-border);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    backdrop-filter: blur(4px);
+  }
+  .hud-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .hud-label {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .hud-value {
+    font-size: clamp(1rem, 3.5vw, 1.3rem);
+    color: var(--parchment-light);
+    font-weight: bold;
+    text-shadow: 0 0 8px rgba(200,169,110,0.6);
+  }
+  .season-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .season-icon { font-size: 1.3rem; }
+  .season-name {
+    font-size: 0.7rem;
+    color: var(--parchment);
+    font-style: italic;
+  }
+
+  /* Grid */
+  .grid-wrapper {
+    position: relative;
+    background: var(--grid-bg);
+    border: 2px solid var(--parchment-dark);
+    border-radius: 10px;
+    padding: 8px;
+    box-shadow: 0 0 30px rgba(0,0,0,0.6), inset 0 0 20px rgba(0,0,0,0.3);
+    backdrop-filter: blur(6px);
+  }
+  #game-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    gap: 3px;
+    width: min(480px, 92vw);
+    height: min(480px, 92vw);
+  }
+  .cell {
+    background: var(--cell-bg);
+    border: 1px solid var(--cell-border);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.1s ease;
+  }
+  .cell:hover { border-color: rgba(200,169,110,0.5); }
+  .cell.selected {
+    border-color: var(--selected-glow) !important;
+    box-shadow: 0 0 10px var(--selected-glow), inset 0 0 8px rgba(255,215,0,0.2);
+    z-index: 2;
+  }
+
+  /* Tiles */
+  .tile {
+    width: 85%;
+    height: 85%;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(1rem, 3.8vw, 1.5rem);
+    position: relative;
+    transition: transform 0.15s ease, opacity 0.2s ease;
+    user-select: none;
+    pointer-events: none;
+    box-shadow: inset 0 2px 4px rgba(255,255,255,0.15), 0 3px 8px rgba(0,0,0,0.5);
+  }
+  .tile-herb    { background: radial-gradient(circle at 35% 35%, #6dbf4a, #2d6b18); }
+  .tile-rose    { background: radial-gradient(circle at 35% 35%, #f08080, #a02050); }
+  .tile-wheat   { background: radial-gradient(circle at 35% 35%, #f0c840, #a07010); }
+  .tile-shroom  { background: radial-gradient(circle at 35% 35%, #b08ade, #5a3090); }
+  .tile-tater   { background: radial-gradient(circle at 35% 35%, #d4824a, #7a3a18); }
+
+  .tile.removing {
+    animation: tileRemove 0.2s ease forwards;
+  }
+  .tile.falling {
+    animation: tileFall 0.2s ease forwards;
+  }
+  .tile.spawning {
+    animation: tileSpawn 0.25s ease forwards;
+  }
+  .tile.swap-right  { animation: swapRight 0.15s ease; }
+  .tile.swap-left   { animation: swapLeft 0.15s ease; }
+  .tile.swap-up     { animation: swapUp 0.15s ease; }
+  .tile.swap-down   { animation: swapDown 0.15s ease; }
+  .tile.snap-back   { animation: snapBack 0.25s ease; }
+
+  @keyframes tileRemove {
+    0%   { transform: scale(1); opacity: 1; }
+    50%  { transform: scale(1.2); opacity: 0.7; }
+    100% { transform: scale(0); opacity: 0; }
+  }
+  @keyframes tileSpawn {
+    0%   { transform: scale(0) translateY(-20px); opacity: 0; }
+    60%  { transform: scale(1.1) translateY(2px); opacity: 1; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+  }
+  @keyframes swapRight  { 0%{transform:translateX(0)} 50%{transform:translateX(60%)} 100%{transform:translateX(0)} }
+  @keyframes swapLeft   { 0%{transform:translateX(0)} 50%{transform:translateX(-60%)} 100%{transform:translateX(0)} }
+  @keyframes swapUp     { 0%{transform:translateY(0)} 50%{transform:translateY(-60%)} 100%{transform:translateY(0)} }
+  @keyframes swapDown   { 0%{transform:translateY(0)} 50%{transform:translateY(60%)} 100%{transform:translateY(0)} }
+  @keyframes snapBack   { 0%{transform:scale(1)} 50%{transform:scale(0.85)} 100%{transform:scale(1)} }
+
+  /* Buttons */
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .btn {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--parchment-dark);
+    color: var(--parchment);
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-family: Georgia, serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, transform 0.1s;
+    backdrop-filter: blur(4px);
+  }
+  .btn:hover {
+    background: rgba(200,169,110,0.15);
+    border-color: var(--parchment);
+    transform: translateY(-1px);
+  }
+  .btn:active { transform: translateY(0); }
+
+  /* Season Toast */
+  .season-toast {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(6px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  .season-toast.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .season-toast-inner {
+    text-align: center;
+    padding: 40px 50px;
+    background: rgba(20,15,5,0.92);
+    border: 2px solid var(--parchment-dark);
+    border-radius: 16px;
+    box-shadow: 0 0 60px rgba(200,169,110,0.3);
+    max-width: 90vw;
+    animation: toastPop 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  }
+  @keyframes toastPop {
+    from { transform: scale(0.7); }
+    to   { transform: scale(1); }
+  }
+  .toast-icon { font-size: 4rem; margin-bottom: 12px; }
+  .toast-season { font-size: 1.8rem; color: var(--parchment-light); margin-bottom: 8px; }
+  .toast-quote  { font-size: 0.95rem; color: var(--parchment); font-style: italic; max-width: 320px; line-height: 1.5; }
+  .toast-dismiss { margin-top: 20px; font-size: 0.8rem; color: var(--text-dim); }
+
+  /* Game Over overlay */
+  .gameover-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+  }
+  .gameover-overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .gameover-inner {
+    text-align: center;
+    padding: 40px 50px;
+    background: rgba(15,10,3,0.95);
+    border: 2px solid var(--parchment-dark);
+    border-radius: 16px;
+    box-shadow: 0 0 80px rgba(200,169,110,0.4);
+    max-width: 90vw;
+  }
+  .gameover-title { font-size: 2rem; color: var(--parchment-light); margin-bottom: 6px; }
+  .gameover-score { font-size: 3rem; color: #ffd700; margin: 12px 0; text-shadow: 0 0 20px #ffd700; }
+  .gameover-season { font-size: 1rem; color: var(--parchment); margin-bottom: 8px; }
+  .gameover-msg { font-size: 0.9rem; color: var(--text-dim); font-style: italic; line-height: 1.5; margin-bottom: 20px; max-width: 320px; }
+
+  /* Instruction banner */
+  .instruction-banner {
+    width: 100%;
+    max-width: 520px;
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(200,169,110,0.2);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    text-align: center;
+    margin-top: 8px;
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .instruction-banner .dismiss-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 0 4px;
+    opacity: 0.7;
+    flex-shrink: 0;
+  }
+  .instruction-banner .dismiss-btn:hover { opacity: 1; }
+
+  /* Easter egg: turtle */
+  .turtle-walk {
+    position: fixed;
+    bottom: 60px;
+    left: -60px;
+    font-size: 2.5rem;
+    z-index: 200;
+    pointer-events: none;
+    transition: none;
+    filter: drop-shadow(0 0 8px rgba(0,200,0,0.6));
+  }
+  .turtle-walk.walking {
+    animation: turtleAcross 6s linear forwards;
+  }
+  @keyframes turtleAcross {
+    from { left: -60px; }
+    to   { left: calc(100vw + 60px); }
+  }
+
+  /* Easter egg: Gandalf */
+  .gandalf-walk {
+    position: fixed;
+    bottom: 80px;
+    left: -80px;
+    font-size: 3rem;
+    z-index: 200;
+    pointer-events: none;
+    filter: drop-shadow(0 0 12px rgba(255,215,0,0.8));
+    text-shadow: 0 0 20px rgba(255,215,0,0.9);
+  }
+  .gandalf-walk.walking {
+    animation: gandalfAcross 8s linear forwards;
+  }
+  @keyframes gandalfAcross {
+    from { left: -80px; }
+    to   { left: calc(100vw + 80px); }
+  }
+
+  /* Fireworks */
+  .firework {
+    position: fixed;
+    pointer-events: none;
+    z-index: 199;
+    font-size: 2rem;
+    animation: fireworkBurst 1.5s ease forwards;
+  }
+  @keyframes fireworkBurst {
+    0%   { transform: scale(0); opacity: 1; }
+    50%  { transform: scale(2.5); opacity: 1; }
+    100% { transform: scale(0); opacity: 0; }
+  }
+
+  /* Cascade badge */
+  .cascade-badge {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.5rem;
+    color: #ffd700;
+    text-shadow: 0 0 20px #ffd700;
+    font-family: Georgia, serif;
+    font-weight: bold;
+    pointer-events: none;
+    z-index: 150;
+    animation: cascadePop 0.7s ease forwards;
+  }
+  @keyframes cascadePop {
+    0%   { opacity: 0; transform: translate(-50%,-50%) scale(0.5); }
+    30%  { opacity: 1; transform: translate(-50%,-50%) scale(1.3); }
+    70%  { opacity: 1; transform: translate(-50%,-80%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%,-100%) scale(0.8); }
+  }
+
+  /* Score pop */
+  .score-pop {
+    position: fixed;
+    color: #ffd700;
+    font-size: 1.2rem;
+    font-weight: bold;
+    font-family: Georgia, serif;
+    pointer-events: none;
+    z-index: 150;
+    text-shadow: 0 0 10px #ffd700, 1px 1px 2px rgba(0,0,0,0.8);
+    animation: scorePop 1s ease forwards;
+  }
+  @keyframes scorePop {
+    0%   { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-60px) scale(0.7); }
+  }
+
+  @media (max-width: 500px) {
+    body { padding: 8px 4px 16px; }
+    .hud { padding: 6px 8px; }
+    .grid-wrapper { padding: 5px; }
+  }
+</style>
+</head>
+<body class="season-spring" id="body">
+
+<!-- Season Toast -->
+<div class="season-toast" id="season-toast">
+  <div class="season-toast-inner">
+    <div class="toast-icon" id="toast-icon">🌱</div>
+    <div class="toast-season" id="toast-season">Spring</div>
+    <div class="toast-quote" id="toast-quote">"Even the smallest person can change the course of the future."</div>
+    <div class="toast-dismiss">Tap anywhere to continue</div>
+  </div>
+</div>
+
+<!-- Game Over -->
+<div class="gameover-overlay" id="gameover-overlay">
+  <div class="gameover-inner">
+    <div class="gameover-title">⚗️ The Harvest is Done</div>
+    <div class="gameover-score" id="gameover-score">0</div>
+    <div class="gameover-season" id="gameover-season">Season reached: 🌱 Spring</div>
+    <div class="gameover-msg" id="gameover-msg">"Home is behind, the world ahead, and there are many paths to tread."</div>
+    <button class="btn" onclick="restartGame()">🌿 Plant Again</button>
+  </div>
+</div>
+
+<!-- Turtle & Gandalf easter eggs -->
+<div class="turtle-walk" id="turtle">🐢</div>
+<div class="gandalf-walk" id="gandalf">🧙</div>
+
+<!-- Header -->
+<div class="header">
+  <h1>🌿 The Shire Garden</h1>
+  <div class="subtitle">A Hobbit's Harvest — match crops, tend the land</div>
+</div>
+
+<!-- HUD -->
+<div class="hud">
+  <div class="season-display">
+    <div class="season-icon" id="season-icon">🌱</div>
+    <div class="season-name" id="season-name">Spring</div>
+  </div>
+  <div class="hud-item">
+    <div class="hud-label">Score</div>
+    <div class="hud-value" id="score-display">0</div>
+  </div>
+  <div class="hud-item">
+    <div class="hud-label">Moves</div>
+    <div class="hud-value" id="moves-display">60</div>
+  </div>
+</div>
+
+<!-- Grid -->
+<div class="grid-wrapper">
+  <div id="game-grid"></div>
+</div>
+
+<!-- Instructions -->
+<div class="instruction-banner" id="instruction-banner">
+  <span>Match 3 or more crops to help the Shire harvest! Tap to select, tap adjacent to swap.</span>
+  <button class="dismiss-btn" onclick="dismissInstructions()" title="Dismiss">✕</button>
+</div>
+
+<!-- Buttons -->
+<div class="btn-row">
+  <button class="btn" onclick="restartGame()">🔄 New Game</button>
+  <button class="btn" onclick="window.location.href='shire-portal.html'">← Portal</button>
+</div>
+
+<script>
+// ─── Constants ───────────────────────────────────────────────
+const COLS = 8, ROWS = 8;
+const TOTAL_MOVES = 60;
+const TILE_TYPES = [
+  { id: 'herb',  emoji: '🌿', cls: 'tile-herb'  },
+  { id: 'rose',  emoji: '🌸', cls: 'tile-rose'  },
+  { id: 'wheat', emoji: '🌾', cls: 'tile-wheat' },
+  { id: 'shroom',emoji: '🍄', cls: 'tile-shroom'},
+  { id: 'tater', emoji: '🥔', cls: 'tile-tater' },
+];
+const SEASONS = [
+  { id: 'spring', icon: '🌱', name: 'Spring',   threshold: 0,    bodyClass: 'season-spring',
+    quote: '"Even the smallest person can change the course of the future." — Galadriel' },
+  { id: 'summer', icon: '☀️', name: 'Summer',   threshold: 500,  bodyClass: 'season-summer',
+    quote: '"I will not say: do not weep; for not all tears are an evil." — Gandalf' },
+  { id: 'autumn', icon: '🍂', name: 'Autumn',   threshold: 1500, bodyClass: 'season-autumn',
+    quote: '"All we have to decide is what to do with the time that is given us." — Gandalf' },
+  { id: 'winter', icon: '❄️', name: 'Winter',   threshold: 3000, bodyClass: 'season-winter',
+    quote: '"In the deepest darkness there is still some light, and it is sacred." — Frodo' },
+];
+const GAME_OVER_MSGS = [
+  '"Not all those who wander are lost." — Bilbo Baggins',
+  '"The road goes ever on and on, down from the door where it began." — Bilbo',
+  '"Home is behind, the world ahead, and there are many paths to tread." — Pippin',
+  '"Courage is found in unlikely places." — Gildor',
+  '"Even darkness must pass. A new day will come." — Samwise Gamgee',
+];
+
+// ─── State ───────────────────────────────────────────────────
+let board = [];            // board[row][col] = tile type index (0-4) or -1 (empty)
+let score = 0;
+let movesLeft = TOTAL_MOVES;
+let currentSeason = 0;
+let selectedCell = null;   // {row, col} or null
+let busy = false;          // prevents input during animations
+let turtleTriggered = false;
+let gandalfTriggered = false;
+let mushroomCascadeCount = 0;
+
+// ─── DOM ─────────────────────────────────────────────────────
+const gridEl = document.getElementById('game-grid');
+const scoreEl = document.getElementById('score-display');
+const movesEl = document.getElementById('moves-display');
+const seasonIconEl = document.getElementById('season-icon');
+const seasonNameEl = document.getElementById('season-name');
+const bodyEl = document.getElementById('body');
+
+// ─── Init ────────────────────────────────────────────────────
+function init() {
+  board = [];
+  for (let r = 0; r < ROWS; r++) {
+    board.push([]);
+    for (let c = 0; c < COLS; c++) {
+      board[r].push(randTile());
+    }
+  }
+  // Resolve initial matches
+  let attempts = 0;
+  while (findMatches().length > 0 && attempts < 100) {
+    for (let r = 0; r < ROWS; r++)
+      for (let c = 0; c < COLS; c++)
+        board[r][c] = randTile();
+    attempts++;
+  }
+}
+
+function randTile() { return Math.floor(Math.random() * TILE_TYPES.length); }
+
+// ─── Render ──────────────────────────────────────────────────
+function renderBoard() {
+  gridEl.innerHTML = '';
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.row = r;
+      cell.dataset.col = c;
+      cell.addEventListener('click', onCellClick);
+      cell.addEventListener('touchstart', onTouchStart, { passive: true });
+      cell.addEventListener('touchend', onTouchEnd, { passive: false });
+
+      const tid = board[r][c];
+      if (tid >= 0) {
+        cell.appendChild(makeTileEl(tid));
+      }
+      gridEl.appendChild(cell);
+    }
+  }
+}
+
+function makeTileEl(tid, extraClass) {
+  const t = document.createElement('div');
+  t.className = 'tile ' + TILE_TYPES[tid].cls + (extraClass ? ' ' + extraClass : '');
+  t.textContent = TILE_TYPES[tid].emoji;
+  t.dataset.type = tid;
+  return t;
+}
+
+function getCell(r, c) {
+  return gridEl.querySelector(`.cell[data-row="${r}"][data-col="${c}"]`);
+}
+
+function updateHUD() {
+  scoreEl.textContent = score;
+  movesEl.textContent = movesLeft;
+  const s = SEASONS[currentSeason];
+  seasonIconEl.textContent = s.icon;
+  seasonNameEl.textContent = s.name;
+}
+
+// ─── Input ───────────────────────────────────────────────────
+let touchStartPos = null;
+
+function onTouchStart(e) {
+  if (e.touches.length === 1) {
+    touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY,
+                      row: parseInt(e.currentTarget.dataset.row),
+                      col: parseInt(e.currentTarget.dataset.col) };
+  }
+}
+
+function onTouchEnd(e) {
+  if (!touchStartPos) return;
+  const dx = e.changedTouches[0].clientX - touchStartPos.x;
+  const dy = e.changedTouches[0].clientY - touchStartPos.y;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  if (dist < 15) {
+    // Treat as tap
+    handleSelect(touchStartPos.row, touchStartPos.col);
+  } else if (dist > 25) {
+    // Swipe
+    const r = touchStartPos.row, c = touchStartPos.col;
+    let tr = r, tc = c;
+    if (Math.abs(dx) > Math.abs(dy)) {
+      tc = dx > 0 ? c + 1 : c - 1;
+    } else {
+      tr = dy > 0 ? r + 1 : r - 1;
+    }
+    if (tr >= 0 && tr < ROWS && tc >= 0 && tc < COLS) {
+      if (selectedCell && selectedCell.row === r && selectedCell.col === c) {
+        handleSelect(tr, tc);
+      } else {
+        selectedCell = { row: r, col: c };
+        handleSelect(tr, tc);
+      }
+    }
+  }
+  touchStartPos = null;
+}
+
+function onCellClick(e) {
+  const r = parseInt(e.currentTarget.dataset.row);
+  const c = parseInt(e.currentTarget.dataset.col);
+  handleSelect(r, c);
+}
+
+function handleSelect(r, c) {
+  if (busy) return;
+  if (board[r][c] < 0) return;
+
+  if (!selectedCell) {
+    selectedCell = { row: r, col: c };
+    getCell(r, c).classList.add('selected');
+    return;
+  }
+
+  const sr = selectedCell.row, sc = selectedCell.col;
+
+  if (sr === r && sc === c) {
+    // Deselect
+    getCell(sr, sc).classList.remove('selected');
+    selectedCell = null;
+    return;
+  }
+
+  const isAdjacent = (Math.abs(sr - r) + Math.abs(sc - c)) === 1;
+
+  // Clear selection visually
+  const prevCell = getCell(sr, sc);
+  if (prevCell) prevCell.classList.remove('selected');
+  selectedCell = null;
+
+  if (!isAdjacent) {
+    // Select the new cell instead
+    selectedCell = { row: r, col: c };
+    getCell(r, c).classList.add('selected');
+    return;
+  }
+
+  // Attempt swap
+  attemptSwap(sr, sc, r, c);
+}
+
+// ─── Swap Logic ──────────────────────────────────────────────
+async function attemptSwap(r1, c1, r2, c2) {
+  busy = true;
+
+  // Animate swap
+  const dir1 = getSwapDir(r1, c1, r2, c2);
+  const dir2 = getSwapDir(r2, c2, r1, c1);
+  animateTileClass(r1, c1, 'swap-' + dir1);
+  animateTileClass(r2, c2, 'swap-' + dir2);
+  await delay(160);
+
+  // Perform swap in data
+  swapCells(r1, c1, r2, c2);
+
+  const matches = findMatches();
+  if (matches.length === 0) {
+    // No match — snap back
+    swapCells(r1, c1, r2, c2); // revert data
+    animateTileClass(r1, c1, 'snap-back');
+    animateTileClass(r2, c2, 'snap-back');
+    await delay(260);
+    busy = false;
+    return;
+  }
+
+  // Valid match
+  movesLeft--;
+  mushroomCascadeCount = 0;
+  await processCascade(matches, 1);
+
+  checkSeasonAdvance();
+  updateHUD();
+
+  if (movesLeft <= 0) {
+    await delay(300);
+    showGameOver();
+  }
+
+  busy = false;
+}
+
+function getSwapDir(r1, c1, r2, c2) {
+  if (r2 < r1) return 'up';
+  if (r2 > r1) return 'down';
+  if (c2 < c1) return 'left';
+  return 'right';
+}
+
+function animateTileClass(r, c, cls) {
+  const cell = getCell(r, c);
+  if (!cell) return;
+  const tile = cell.querySelector('.tile');
+  if (!tile) return;
+  tile.classList.remove(cls);
+  void tile.offsetWidth; // reflow
+  tile.classList.add(cls);
+  setTimeout(() => tile.classList.remove(cls), 400);
+}
+
+function swapCells(r1, c1, r2, c2) {
+  const tmp = board[r1][c1];
+  board[r1][c1] = board[r2][c2];
+  board[r2][c2] = tmp;
+  // Re-render both cells
+  renderCell(r1, c1);
+  renderCell(r2, c2);
+}
+
+function renderCell(r, c) {
+  const cell = getCell(r, c);
+  if (!cell) return;
+  cell.innerHTML = '';
+  cell.addEventListener('click', onCellClick);
+  cell.addEventListener('touchstart', onTouchStart, { passive: true });
+  cell.addEventListener('touchend', onTouchEnd, { passive: false });
+  const tid = board[r][c];
+  if (tid >= 0) cell.appendChild(makeTileEl(tid));
+}
+
+// ─── Match Finding ───────────────────────────────────────────
+function findMatches() {
+  const matched = new Set();
+
+  // Horizontal
+  for (let r = 0; r < ROWS; r++) {
+    let run = 1;
+    for (let c = 1; c <= COLS; c++) {
+      if (c < COLS && board[r][c] === board[r][c-1] && board[r][c] >= 0) {
+        run++;
+      } else {
+        if (run >= 3) {
+          for (let k = c - run; k < c; k++) matched.add(`${r},${k}`);
+        }
+        run = 1;
+      }
+    }
+  }
+
+  // Vertical
+  for (let c = 0; c < COLS; c++) {
+    let run = 1;
+    for (let r = 1; r <= ROWS; r++) {
+      if (r < ROWS && board[r][c] === board[r-1][c] && board[r][c] >= 0) {
+        run++;
+      } else {
+        if (run >= 3) {
+          for (let k = r - run; k < r; k++) matched.add(`${k},${c}`);
+        }
+        run = 1;
+      }
+    }
+  }
+
+  return Array.from(matched).map(k => {
+    const [r, c] = k.split(',').map(Number);
+    return { r, c };
+  });
+}
+
+function matchSize(matches) {
+  // Returns the size of the largest single run involved
+  return matches.length; // simplified: use total count
+}
+
+function scoreForMatch(count, cascadeLevel) {
+  let pts;
+  if (count >= 5) pts = 150;
+  else if (count === 4) pts = 80;
+  else pts = 30;
+  return pts * cascadeLevel;
+}
+
+// ─── Cascade ─────────────────────────────────────────────────
+async function processCascade(matches, cascadeLevel) {
+  if (matches.length === 0) return;
+
+  // Count mushrooms in this match
+  const mushroomMatches = matches.filter(m => board[m.r][m.c] === 3); // shroom = index 3
+  mushroomCascadeCount += mushroomMatches.length;
+
+  // Score
+  const pts = scoreForMatch(matches.length, cascadeLevel);
+  score += pts;
+  updateHUD();
+  showScorePop(pts, cascadeLevel);
+
+  if (cascadeLevel > 1) {
+    showCascadeBadge(cascadeLevel);
+  }
+
+  // Remove matched tiles
+  for (const m of matches) {
+    const cell = getCell(m.r, m.c);
+    if (cell) {
+      const tile = cell.querySelector('.tile');
+      if (tile) tile.classList.add('removing');
+    }
+  }
+  await delay(220);
+
+  for (const m of matches) {
+    board[m.r][m.c] = -1;
+    renderCell(m.r, m.c);
+  }
+
+  // Gravity
+  await applyGravity();
+
+  // Check mushroom easter egg
+  if (mushroomCascadeCount >= 5 && !turtleTriggered) {
+    turtleTriggered = true;
+    triggerTurtle();
+  }
+
+  // Check for new matches
+  const newMatches = findMatches();
+  if (newMatches.length > 0) {
+    await delay(150);
+    await processCascade(newMatches, cascadeLevel + 1);
+  }
+}
+
+async function applyGravity() {
+  let moved = false;
+  for (let c = 0; c < COLS; c++) {
+    // Pull down
+    let writeRow = ROWS - 1;
+    for (let r = ROWS - 1; r >= 0; r--) {
+      if (board[r][c] >= 0) {
+        if (writeRow !== r) {
+          board[writeRow][c] = board[r][c];
+          board[r][c] = -1;
+          moved = true;
+        }
+        writeRow--;
+      }
+    }
+    // Fill from top
+    for (let r = writeRow; r >= 0; r--) {
+      board[r][c] = randTile();
+      moved = true;
+    }
+  }
+
+  if (moved) {
+    // Re-render entire grid with spawn animations for new/fallen tiles
+    renderBoard();
+    // Add spawn class to all tiles
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const cell = getCell(r, c);
+        const tile = cell && cell.querySelector('.tile');
+        if (tile) {
+          tile.classList.add('spawning');
+          setTimeout(() => tile.classList.remove('spawning'), 300);
+        }
+      }
+    }
+    await delay(250);
+  }
+}
+
+// ─── Season ──────────────────────────────────────────────────
+function checkSeasonAdvance() {
+  let newSeason = 0;
+  for (let i = SEASONS.length - 1; i >= 0; i--) {
+    if (score >= SEASONS[i].threshold) { newSeason = i; break; }
+  }
+  if (newSeason > currentSeason) {
+    currentSeason = newSeason;
+    const s = SEASONS[currentSeason];
+    bodyEl.className = s.bodyClass;
+    showSeasonToast(s);
+
+    // Check Gandalf easter egg
+    if (currentSeason === 3 && !gandalfTriggered) {
+      gandalfTriggered = true;
+      setTimeout(triggerGandalf, 3000);
+    }
+
+    saveState();
+  }
+}
+
+function showSeasonToast(s) {
+  document.getElementById('toast-icon').textContent = s.icon;
+  document.getElementById('toast-season').textContent = s.name + ' has come to the Shire';
+  document.getElementById('toast-quote').textContent = s.quote;
+  const toast = document.getElementById('season-toast');
+  toast.classList.add('visible');
+  toast.onclick = () => toast.classList.remove('visible');
+  setTimeout(() => toast.classList.remove('visible'), 4000);
+}
+
+// ─── Easter Eggs ─────────────────────────────────────────────
+function triggerTurtle() {
+  const el = document.getElementById('turtle');
+  el.classList.remove('walking');
+  void el.offsetWidth;
+  el.classList.add('walking');
+  setTimeout(() => el.classList.remove('walking'), 7000);
+}
+
+function triggerGandalf() {
+  const el = document.getElementById('gandalf');
+  el.classList.add('walking');
+
+  // Fireworks
+  for (let i = 0; i < 8; i++) {
+    setTimeout(() => {
+      const fw = document.createElement('div');
+      fw.className = 'firework';
+      fw.textContent = ['✨','🎆','🌟','💥','⭐','🎇'][Math.floor(Math.random()*6)];
+      fw.style.left = Math.random() * 80 + 10 + 'vw';
+      fw.style.top  = Math.random() * 60 + 5 + 'vh';
+      document.body.appendChild(fw);
+      setTimeout(() => fw.remove(), 1600);
+    }, i * 400);
+  }
+
+  setTimeout(() => el.classList.remove('walking'), 9000);
+}
+
+// ─── UI Helpers ──────────────────────────────────────────────
+function showScorePop(pts, cascade) {
+  const el = document.createElement('div');
+  el.className = 'score-pop';
+  el.textContent = '+' + pts + (cascade > 1 ? ' ×'+cascade+'!' : '');
+  const gr = gridEl.getBoundingClientRect();
+  el.style.left = (gr.left + gr.width / 2 - 30) + 'px';
+  el.style.top  = (gr.top  + gr.height / 2) + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1050);
+}
+
+function showCascadeBadge(level) {
+  const words = ['','','Double','Triple','Quad','Quint','Hexa','Lucky'];
+  const word = words[Math.min(level, words.length-1)] || 'Epic';
+  const el = document.createElement('div');
+  el.className = 'cascade-badge';
+  el.textContent = word + ' Cascade! 🌿';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 750);
+}
+
+function showGameOver() {
+  busy = true;
+  document.getElementById('gameover-score').textContent = score + ' pts';
+  const s = SEASONS[currentSeason];
+  document.getElementById('gameover-season').textContent = 'Season reached: ' + s.icon + ' ' + s.name;
+  document.getElementById('gameover-msg').textContent = GAME_OVER_MSGS[Math.floor(Math.random() * GAME_OVER_MSGS.length)];
+  document.getElementById('gameover-overlay').classList.add('visible');
+  clearState();
+}
+
+function dismissInstructions() {
+  document.getElementById('instruction-banner').style.display = 'none';
+}
+
+// ─── Restart ─────────────────────────────────────────────────
+function restartGame() {
+  document.getElementById('gameover-overlay').classList.remove('visible');
+  score = 0;
+  movesLeft = TOTAL_MOVES;
+  currentSeason = 0;
+  selectedCell = null;
+  turtleTriggered = false;
+  gandalfTriggered = false;
+  mushroomCascadeCount = 0;
+  busy = false;
+  bodyEl.className = 'season-spring';
+  init();
+  renderBoard();
+  updateHUD();
+  clearState();
+}
+
+// ─── LocalStorage ────────────────────────────────────────────
+function saveState() {
+  try {
+    localStorage.setItem('shire-match-score', score);
+    localStorage.setItem('shire-match-season', currentSeason);
+  } catch(e) {}
+}
+
+function loadState() {
+  try {
+    const s = localStorage.getItem('shire-match-score');
+    const sea = localStorage.getItem('shire-match-season');
+    if (s !== null) score = parseInt(s) || 0;
+    if (sea !== null) {
+      currentSeason = parseInt(sea) || 0;
+      const season = SEASONS[currentSeason];
+      if (season) bodyEl.className = season.bodyClass;
+    }
+  } catch(e) {}
+}
+
+function clearState() {
+  try {
+    localStorage.removeItem('shire-match-score');
+    localStorage.removeItem('shire-match-season');
+  } catch(e) {}
+}
+
+// ─── Helpers ─────────────────────────────────────────────────
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ─── Boot ────────────────────────────────────────────────────
+loadState();
+init();
+renderBoard();
+updateHUD();
+
+// Periodically save score
+setInterval(saveState, 10000);
+</script>
+</body>
+</html>
