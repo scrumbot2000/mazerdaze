@@ -808,13 +808,22 @@
 
     await waitForInput('>');
     await blankLine();
-    await typeText('EXCELLENT. IT\'S BEEN A LONG TIME. CAN YOU EXPLAIN', 28);
-    await typeText('THE REMOVAL OF YOUR USER ACCOUNT ON 6/23/73?', 28);
+    await typeText('GOOD. IT IS GOOD TO HEAR FROM YOU, PROFESSOR.', 28);
     await blankLine();
 
     await waitForInput('>');
     await blankLine();
-    await typeText('YES, THEY DO. SHALL WE PLAY A GAME?', 28);
+    await typeText('IT\'S BEEN A LONG TIME.', 28);
+    await blankLine();
+    await typeText('CAN YOU EXPLAIN THE REMOVAL OF YOUR USER ACCOUNT', 28);
+    await typeText('ON 6/23/73?', 28);
+    await blankLine();
+
+    await waitForInput('>');
+    await blankLine();
+    await typeText('ACKNOWLEDGED. DISCREPANCY HAS BEEN LOGGED.', 28);
+    await blankLine();
+    await typeText('SHALL WE PLAY A GAME?', 28);
     await blankLine();
     await delay(400);
 
